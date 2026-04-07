@@ -1,7 +1,29 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Producto, Categoria, User } from '../interfaces/ProductoInterface';
 
-// Datos mock iniciales
+// API Configuration
+const API_URL = 'https://jodaxi.onrender.com';
+
+// Helper para hacer peticiones
+const fetchAPI = async (endpoint: string, options?: RequestInit) => {
+    const token = await AsyncStorage.getItem('token');
+    const response = await fetch(`${API_URL}${endpoint}`, {
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+            ...options?.headers,
+        },
+    });
+    
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return response.json();
+};
+
+// Datos mock iniciales (solo para primer uso)
 const MOCK_PRODUCTOS: Producto[] = [
     {
         id: 1,
@@ -47,46 +69,28 @@ const MOCK_CATEGORIAS: Categoria[] = [
     { id: 6, nombre: 'Otros', descripcion: 'Otros artículos universitarios' },
 ];
 
-// Inicializar datos mock
-const initializeMockData = async () => {
-    const productos = await AsyncStorage.getItem('productos');
-    if (!productos) {
-        await AsyncStorage.setItem('productos', JSON.stringify(MOCK_PRODUCTOS));
-    }
-    const categorias = await AsyncStorage.getItem('categorias');
-    if (!categorias) {
-        await AsyncStorage.setItem('categorias', JSON.stringify(MOCK_CATEGORIAS));
-    }
-};
-
-// Auth API Local
+// Auth API - Backend
 export const authAPI = {
     login: async (email: string, password: string) => {
-        await initializeMockData();
-        const user: User = {
-            id: Date.now(),
-            name: email.split('@')[0],
-            username: email.split('@')[0],
-            email: email,
-        };
-        const token = 'mock-token-' + Date.now();
+        const response = await fetchAPI('/api/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ email, password }),
+        });
+        const { user, token } = response.data;
         await AsyncStorage.setItem('token', token);
         await AsyncStorage.setItem('user', JSON.stringify(user));
-        return { data: { user, token } };
+        return response;
     },
     
     register: async (name: string, username: string, email: string, password: string) => {
-        await initializeMockData();
-        const user: User = {
-            id: Date.now(),
-            name: name,
-            username: username,
-            email: email,
-        };
-        const token = 'mock-token-' + Date.now();
+        const response = await fetchAPI('/api/auth/register', {
+            method: 'POST',
+            body: JSON.stringify({ name, username, email, password }),
+        });
+        const { user, token } = response.data;
         await AsyncStorage.setItem('token', token);
         await AsyncStorage.setItem('user', JSON.stringify(user));
-        return { data: { user, token } };
+        return response;
     },
     
     logout: async () => {
@@ -96,94 +100,68 @@ export const authAPI = {
     },
     
     me: async () => {
-        const userStr = await AsyncStorage.getItem('user');
-        if (!userStr) throw new Error('No user logged in');
-        return { data: JSON.parse(userStr) };
+        return fetchAPI('/api/auth/me');
     },
 };
 
-// Product API Local
+// Product API - Backend
 export const productAPI = {
     getAll: async () => {
-        await initializeMockData();
-        const productos = await AsyncStorage.getItem('productos');
-        return { data: JSON.parse(productos || '[]') };
+        return fetchAPI('/api/products');
     },
     
     getById: async (id: number) => {
-        const productos = await AsyncStorage.getItem('productos');
-        const list: Producto[] = JSON.parse(productos || '[]');
-        const producto = list.find(p => p.id === id);
-        if (!producto) throw new Error('Producto no encontrado');
-        return { data: producto };
+        return fetchAPI(`/api/products/${id}`);
     },
     
     create: async (data: any) => {
-        const productos = await AsyncStorage.getItem('productos');
-        const list: Producto[] = JSON.parse(productos || '[]');
         const userStr = await AsyncStorage.getItem('user');
         const user: User = JSON.parse(userStr || '{}');
         
-        const nuevoProducto: Producto = {
-            id: Date.now(),
+        const productData = {
             ...data,
-            user: user,
-            categoria: MOCK_CATEGORIAS.find(c => c.id === data.categoria_id) || MOCK_CATEGORIAS[0],
-            imagenes: [],
+            user_id: user.id,
+            user_name: user.name,
+            user_email: user.email,
         };
         
-        list.unshift(nuevoProducto);
-        await AsyncStorage.setItem('productos', JSON.stringify(list));
-        return { data: nuevoProducto };
+        return fetchAPI('/api/products', {
+            method: 'POST',
+            body: JSON.stringify(productData),
+        });
     },
     
     update: async (id: number, data: any) => {
-        const productos = await AsyncStorage.getItem('productos');
-        const list: Producto[] = JSON.parse(productos || '[]');
-        const index = list.findIndex(p => p.id === id);
-        if (index === -1) throw new Error('Producto no encontrado');
-        
-        list[index] = { ...list[index], ...data };
-        await AsyncStorage.setItem('productos', JSON.stringify(list));
-        return { data: list[index] };
+        return fetchAPI(`/api/products/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
     },
     
     delete: async (id: number) => {
-        const productos = await AsyncStorage.getItem('productos');
-        const list: Producto[] = JSON.parse(productos || '[]');
-        const filtered = list.filter(p => p.id !== id);
-        await AsyncStorage.setItem('productos', JSON.stringify(filtered));
-        return { data: { message: 'Producto eliminado' } };
+        return fetchAPI(`/api/products/${id}`, {
+            method: 'DELETE',
+        });
     },
     
     deleteAll: async () => {
-        await AsyncStorage.removeItem('productos');
-        return { data: { message: 'Todos los productos eliminados' } };
+        return { data: { message: 'Not implemented with backend' } };
     },
     
     deleteMockProducts: async () => {
-        const productos = await AsyncStorage.getItem('productos');
-        const list: Producto[] = JSON.parse(productos || '[]');
-        // Eliminar productos mock con IDs 1, 2 y 3 (Libro de Cálculo, Calculadora, Mochila)
-        const filtered = list.filter(p => p.id !== 1 && p.id !== 2 && p.id !== 3);
-        await AsyncStorage.setItem('productos', JSON.stringify(filtered));
-        return { data: { message: 'Productos eliminados' } };
+        return { data: { message: 'Not needed with backend' } };
     },
     
     getByUser: async (userId: number) => {
-        const productos = await AsyncStorage.getItem('productos');
-        const list: Producto[] = JSON.parse(productos || '[]');
-        const filtered = list.filter(p => p.user?.id === userId);
-        return { data: filtered };
+        return fetchAPI(`/api/products/user/${userId}`);
     },
 };
 
-// Category API Local
+// Category API
 export const categoryAPI = {
     getAll: async () => {
-        await initializeMockData();
-        const categorias = await AsyncStorage.getItem('categorias');
-        return { data: JSON.parse(categorias || '[]') };
+        // For now return mock categories
+        return { data: MOCK_CATEGORIAS };
     },
 };
 

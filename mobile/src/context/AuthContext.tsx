@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { authAPI } from '../api/productAPI';
+import { authAPI, productAPI } from '../api/productAPI';
 
 interface User {
     id: number;
@@ -70,19 +70,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const updateUserStats = async () => {
         try {
-            // Obtener productos del usuario desde AsyncStorage
-            const productosData = await AsyncStorage.getItem('productos');
-            const allProductos = productosData ? JSON.parse(productosData) : [];
+            if (!user) return;
             
-            // Contar productos del usuario actual
-            const userProductos = allProductos.filter((p: any) => p.user?.id === user?.id);
+            // Obtener productos del usuario desde el backend
+            const response = await productAPI.getByUser(user.id);
+            const userProductos = response.data || [];
             
-            // Por ahora todas las estadísticas empiezan en 0
-            // En el futuro se calcularán desde la base de datos
             setUserStats({
                 productos: userProductos.length,
-                ventas: 0, // Se actualizará cuando haya sistema de ventas
-                compras: 0, // Se actualizará cuando haya sistema de compras
+                ventas: 0,
+                compras: 0,
             });
         } catch (error) {
             console.error('Error updating stats:', error);
