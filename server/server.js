@@ -114,15 +114,16 @@ app.use('/api/products', require('./routes/products'));
 app.use('/api/chats', require('./routes/chats'));
 app.use('/api/upload', require('./routes/upload'));
 
-// Servir app web estática (si existe)
+// Servir app web estática (archivos existentes)
 const path = require('path');
 app.use(express.static(path.join(__dirname, '../mobile/dist')));
 
-// Redirigir rutas no-API al index.html de la app web
-app.get('*', (req, res, next) => {
+// SPA fallback - solo para rutas que no empiezan con /api y no son archivos
+app.get('*', (req, res) => {
   if (req.path.startsWith('/api')) {
-    return next();
+    return res.status(404).json({ error: 'API endpoint not found' });
   }
+  // Para cualquier otra ruta, servir el index.html (SPA)
   res.sendFile(path.join(__dirname, '../mobile/dist/index.html'));
 });
 
