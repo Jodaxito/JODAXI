@@ -173,8 +173,8 @@ app.post('/api/auth/register', async (req, res) => {
     
     // Crear usuario
     const result = await pool.query(
-      `INSERT INTO users (name, email, password, productos, ventas, compras) 
-       VALUES ($1, $2, $3, 0, 0, 0) RETURNING *`,
+      `INSERT INTO users (name, email, password) 
+       VALUES ($1, $2, $3) RETURNING *`,
       [name, email, password]
     );
     
