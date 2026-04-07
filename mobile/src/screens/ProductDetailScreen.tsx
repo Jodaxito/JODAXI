@@ -15,7 +15,7 @@ import { StackScreenProps } from '@react-navigation/stack';
 import { HomeStackParamList } from '../navigator/BottomTabNavigator';
 import { colors } from '../themes/appTheme';
 import { Producto } from '../interfaces/ProductoInterface';
-import { productAPI } from '../api/productAPI';
+import { productAPI, chatAPI } from '../api/productAPI';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
 
@@ -89,64 +89,44 @@ export const ProductDetailScreen = ({ route, navigation }: Props) => {
     }
 
     const handleContact = async () => {
-        if (!product?.user) {
+        if (!product?.user_id || !user?.id) {
             Alert.alert('Error', 'No se puede contactar al vendedor');
             return;
         }
 
+        // No permitir contactarse a uno mismo
+        if (product.user_id === user.id) {
+            Alert.alert('Error', 'No puedes contactarte a ti mismo');
+            return;
+        }
+
         try {
-            // Check if chat already exists
-            const chatsJson = await AsyncStorage.getItem('chats');
-            const chats: Chat[] = chatsJson ? JSON.parse(chatsJson) : [];
+            // Crear chat via API
+            const chatData = {
+                product_id: productId,
+                product_name: product.nombre,
+                participants: [
+                    { user_id: user.id, user_name: user.name },
+                    { user_id: product.user_id, user_name: product.user_name || 'Vendedor' }
+                ]
+            };
             
-            const existingChat = chats.find(chat => 
-                chat.userId === product.user?.id && chat.productId === productId
-            );
+            const response = await chatAPI.create(chatData);
+            const newChat = response.data;
 
-            if (existingChat) {
-                // Navigate to existing chat
-                navigation.navigate('ChatDetailScreen', {
-                    chatId: existingChat.id,
-                    userName: existingChat.userName,
-                    productId: existingChat.productId,
-                    productName: existingChat.productName
-                });
-            } else {
-                // Create new chat
-                const newChat: Chat = {
-                    id: Date.now(),
-                    userId: product.user.id,
-                    userName: product.user.name,
-                    userUsername: (product.user as any).username || 'usuario',
-                    lastMessage: 'Hola, me interesa tu producto',
-                    timestamp: new Date().toISOString(),
-                    unreadCount: 0,
-                    productId: productId,
-                    productName: product.nombre
-                };
+            // Enviar mensaje inicial
+            await chatAPI.sendMessage(newChat.id, {
+                sender_id: user.id,
+                text: 'Hola, me interesa tu producto'
+            });
 
-                const updatedChats = [...chats, newChat];
-                await AsyncStorage.setItem('chats', JSON.stringify(updatedChats));
-
-                // Create initial message
-                const initialMessage = {
-                    id: Date.now(),
-                    chatId: newChat.id,
-                    senderId: user?.id || 0,
-                    text: 'Hola, me interesa tu producto',
-                    timestamp: new Date().toISOString(),
-                    isRead: false
-                };
-                await AsyncStorage.setItem(`messages_${newChat.id}`, JSON.stringify([initialMessage]));
-
-                // Navigate to new chat
-                navigation.navigate('ChatDetailScreen', {
-                    chatId: newChat.id,
-                    userName: newChat.userName,
-                    productId: newChat.productId,
-                    productName: newChat.productName
-                });
-            }
+            // Navegar al chat
+            navigation.navigate('ChatDetailScreen', {
+                chatId: newChat.id,
+                userName: product.user_name || 'Vendedor',
+                productId: productId,
+                productName: product.nombre
+            });
         } catch (error) {
             console.error('Error creating chat:', error);
             Alert.alert('Error', 'No se pudo iniciar la conversación');

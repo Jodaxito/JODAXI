@@ -77,25 +77,35 @@ const MOCK_CATEGORIAS: Categoria[] = [
 // Auth API - Backend
 export const authAPI = {
     login: async (email: string, password: string) => {
-        const response = await fetchAPI('/api/auth/login', {
-            method: 'POST',
-            body: JSON.stringify({ email, password }),
-        });
-        const { user, token } = response.data;
-        await AsyncStorage.setItem('token', token);
-        await AsyncStorage.setItem('user', JSON.stringify(user));
-        return response;
+        try {
+            const response = await fetchAPI('/api/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({ email, password }),
+            });
+            const { user, token } = response.data;
+            await AsyncStorage.setItem('token', token);
+            await AsyncStorage.setItem('user', JSON.stringify(user));
+            return response;
+        } catch (error) {
+            alert('Error en login: ' + (error as Error).message);
+            throw error;
+        }
     },
     
     register: async (name: string, username: string, email: string, password: string) => {
-        const response = await fetchAPI('/api/auth/register', {
-            method: 'POST',
-            body: JSON.stringify({ name, username, email, password }),
-        });
-        const { user, token } = response.data;
-        await AsyncStorage.setItem('token', token);
-        await AsyncStorage.setItem('user', JSON.stringify(user));
-        return response;
+        try {
+            const response = await fetchAPI('/api/auth/register', {
+                method: 'POST',
+                body: JSON.stringify({ name, username, email, password }),
+            });
+            const { user, token } = response.data;
+            await AsyncStorage.setItem('token', token);
+            await AsyncStorage.setItem('user', JSON.stringify(user));
+            return response;
+        } catch (error) {
+            alert('Error en registro: ' + (error as Error).message);
+            throw error;
+        }
     },
     
     logout: async () => {
@@ -173,6 +183,31 @@ export const productAPI = {
     },
 };
 
+// Chat API - Backend
+export const chatAPI = {
+    getAll: async (userId: number) => {
+        return fetchAPI(`/api/chats?userId=${userId}`);
+    },
+    
+    create: async (data: any) => {
+        return fetchAPI('/api/chats', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+    
+    getMessages: async (chatId: number) => {
+        return fetchAPI(`/api/chats/${chatId}/messages`);
+    },
+    
+    sendMessage: async (chatId: number, data: any) => {
+        return fetchAPI(`/api/chats/${chatId}/messages`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+};
+
 // Category API
 export const categoryAPI = {
     getAll: async () => {
@@ -181,4 +216,4 @@ export const categoryAPI = {
     },
 };
 
-export default { authAPI, productAPI, categoryAPI };
+export default { authAPI, productAPI, categoryAPI, chatAPI };
