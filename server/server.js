@@ -124,6 +124,13 @@ const initDB = async () => {
     }
     
     try {
+      await pool.query(`ALTER TABLE messages DROP CONSTRAINT IF EXISTS messages_sender_id_fkey`);
+      console.log('Foreign key constraint de messages eliminada');
+    } catch (e) {
+      // Ignorar si no existe
+    }
+    
+    try {
       await pool.query(`ALTER TABLE chat_participants ALTER COLUMN user_id TYPE BIGINT`);
       console.log('Columna user_id en chat_participants cambiada a BIGINT');
     } catch (e) {
