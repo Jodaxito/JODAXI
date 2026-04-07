@@ -15,7 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { StackScreenProps } from '@react-navigation/stack';
 import { ProfileStackParamList } from '../navigator/BottomTabNavigator';
 import { colors } from '../themes/appTheme';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { chatAPI } from '../api/productAPI';
+import { useAuth } from '../context/AuthContext';
 
 type Props = StackScreenProps<ProfileStackParamList, 'Chats'>;
 
@@ -33,6 +34,7 @@ interface Chat {
 }
 
 export const ChatsScreen = ({ navigation }: Props) => {
+    const { user } = useAuth();
     const [chats, setChats] = useState<Chat[]>([]);
     const [refreshing, setRefreshing] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -44,14 +46,22 @@ export const ChatsScreen = ({ navigation }: Props) => {
     const loadChats = async () => {
         try {
             setLoading(true);
-            // Inicia vacío - se llenará cuando el usuario contacte vendedores/compradores
-            const savedChats = await AsyncStorage.getItem('chats');
-            if (savedChats) {
-                setChats(JSON.parse(savedChats));
-            } else {
-                // No hay chats guardados, iniciar vacío
+            if (!user?.id) {
                 setChats([]);
+                return;
             }
+            const response = await chatAPI.getAll(user.id);
+            setChats(response.data.map((c: any) => ({
+                id: c.id,
+                userId: c.user_id,
+                userName: c.user_name,
+                userUsername: c.user_username || 'usuario',
+                lastMessage: c.last_message || '',
+                timestamp: c.last_message_time || c.created_at,
+                unreadCount: c.unread_count || 0,
+                productId: c.product_id,
+                productName: c.product_name
+            })));
         } catch (error) {
             console.error('Error loading chats:', error);
         } finally {

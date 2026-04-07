@@ -42,8 +42,8 @@ export const MyProductsScreen = ({ navigation }: Props) => {
         try {
             setLoading(true);
             const response = await productAPI.getAll();
-            // Filtrar solo los productos del usuario actual
-            const myProducts = response.data.filter((p: Producto) => p.user?.id === user?.id);
+            // Filtrar solo los productos del usuario actual usando user_id
+            const myProducts = response.data.filter((p: Producto) => p.user_id === user?.id);
             setProducts(myProducts);
         } catch (error) {
             console.error('Error loading my products:', error);

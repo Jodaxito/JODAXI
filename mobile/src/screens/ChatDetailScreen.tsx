@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { StackScreenProps } from '@react-navigation/stack';
 import { ProfileStackParamList } from '../navigator/BottomTabNavigator';
 import { colors } from '../themes/appTheme';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { chatAPI } from '../api/productAPI';
 import { useAuth } from '../context/AuthContext';
 
 type Props = StackScreenProps<ProfileStackParamList, 'ChatDetail'>;
@@ -60,63 +60,40 @@ export const ChatDetailScreen = ({ route, navigation }: Props) => {
 
     const loadMessages = async () => {
         try {
-            const messagesJson = await AsyncStorage.getItem(`messages_${chatId}`);
-            if (messagesJson) {
-                setMessages(JSON.parse(messagesJson));
-            }
+            const response = await chatAPI.getMessages(chatId);
+            setMessages(response.data.map((m: any) => ({
+                id: m.id,
+                chatId: m.chat_id,
+                senderId: m.sender_id,
+                text: m.text,
+                timestamp: m.timestamp,
+                isRead: m.is_read
+            })));
         } catch (error) {
             console.error('Error loading messages:', error);
         }
     };
 
     const markMessagesAsRead = async () => {
-        try {
-            const chatsJson = await AsyncStorage.getItem('chats');
-            if (chatsJson) {
-                const chats: Chat[] = JSON.parse(chatsJson);
-                const updatedChats = chats.map(chat => 
-                    chat.id === chatId ? { ...chat, unreadCount: 0 } : chat
-                );
-                await AsyncStorage.setItem('chats', JSON.stringify(updatedChats));
-            }
-        } catch (error) {
-            console.error('Error marking messages as read:', error);
-        }
+        // Backend handles this
     };
 
     const sendMessage = async () => {
         if (!inputText.trim()) return;
 
-        const newMessage: Message = {
-            id: Date.now(),
-            chatId,
-            senderId: user?.id || 0,
-            text: inputText.trim(),
-            timestamp: new Date().toISOString(),
-            isRead: false,
-        };
-
         try {
-            const updatedMessages = [...messages, newMessage];
-            setMessages(updatedMessages);
-            await AsyncStorage.setItem(`messages_${chatId}`, JSON.stringify(updatedMessages));
+            await chatAPI.sendMessage(chatId, {
+                sender_id: user?.id,
+                text: inputText.trim()
+            });
             
-            // Update chat last message
-            const chatsJson = await AsyncStorage.getItem('chats');
-            if (chatsJson) {
-                const chats: Chat[] = JSON.parse(chatsJson);
-                const chatIndex = chats.findIndex(c => c.id === chatId);
-                if (chatIndex >= 0) {
-                    chats[chatIndex].lastMessage = inputText.trim();
-                    chats[chatIndex].timestamp = new Date().toISOString();
-                    await AsyncStorage.setItem('chats', JSON.stringify(chats));
-                }
-            }
-            
+            // Reload messages
+            await loadMessages();
             setInputText('');
             flatListRef.current?.scrollToEnd({ animated: true });
         } catch (error) {
             console.error('Error sending message:', error);
+            Alert.alert('Error', 'No se pudo enviar el mensaje');
         }
     };
 
