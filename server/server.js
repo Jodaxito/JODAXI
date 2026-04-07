@@ -119,7 +119,10 @@ const path = require('path');
 app.use(express.static(path.join(__dirname, '../mobile/dist')));
 
 // Redirigir rutas no-API al index.html de la app web
-app.get('*', (req, res) => {
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
   res.sendFile(path.join(__dirname, '../mobile/dist/index.html'));
 });
 
