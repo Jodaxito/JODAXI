@@ -120,9 +120,9 @@ export const productAPI = {
     },
     
     create: async (data: any) => {
-        console.log('Creating product...');
+        alert('Iniciando creación de producto...');
         const userStr = await AsyncStorage.getItem('user');
-        console.log('User from storage:', userStr);
+        alert('Usuario: ' + (userStr ? 'encontrado' : 'NO encontrado'));
         const user: User = JSON.parse(userStr || '{}');
         
         const productData = {
@@ -132,12 +132,19 @@ export const productAPI = {
             user_email: user.email,
         };
         
-        console.log('Product data:', productData);
+        alert('Enviando a: ' + API_URL + '/api/products');
         
-        return fetchAPI('/api/products', {
-            method: 'POST',
-            body: JSON.stringify(productData),
-        });
+        try {
+            const result = await fetchAPI('/api/products', {
+                method: 'POST',
+                body: JSON.stringify(productData),
+            });
+            alert('Producto creado exitosamente!');
+            return result;
+        } catch (error) {
+            alert('Error al crear: ' + (error as Error).message);
+            throw error;
+        }
     },
     
     update: async (id: number, data: any) => {
