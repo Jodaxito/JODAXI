@@ -391,10 +391,8 @@ app.post('/api/chats', async (req, res) => {
 app.get('/api/chats/:chatId/messages', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT m.*, u.name as sender_name 
-       FROM messages m 
-       JOIN users u ON m.sender_id = u.id 
-       WHERE m.chat_id = $1 ORDER BY m.timestamp ASC`,
+      `SELECT * FROM messages 
+       WHERE chat_id = $1 ORDER BY timestamp ASC`,
       [req.params.chatId]
     );
     res.json({ data: result.rows });
