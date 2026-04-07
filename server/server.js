@@ -104,14 +104,23 @@ app.use('/api/products', require('./routes/products'));
 app.use('/api/chats', require('./routes/chats'));
 app.use('/api/upload', require('./routes/upload'));
 
-// Ruta de prueba
-app.get('/', (req, res) => {
+// Servir app web estática (si existe)
+const path = require('path');
+app.use(express.static(path.join(__dirname, '../mobile/dist')));
+
+// Ruta de prueba API (solo si no hay app web)
+app.get('/api', (req, res) => {
   res.json({ message: 'API JODAXI funcionando con PostgreSQL', status: 'OK' });
 });
 
 // Health check para Render
 app.get('/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+});
+
+// Redirigir todas las rutas al index.html de la app web
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../mobile/dist/index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
