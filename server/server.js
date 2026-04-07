@@ -98,7 +98,7 @@ const initDB = async () => {
 
 initDB();
 
-// Ruta de prueba API
+// Ruta de prueba API (PRIMERA)
 app.get('/api', (req, res) => {
   res.json({ message: 'API JODAXI funcionando con PostgreSQL', status: 'OK' });
 });
@@ -108,22 +108,28 @@ app.get('/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
-// Rutas API
+// Rutas API (antes que todo lo demás)
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/chats', require('./routes/chats'));
 app.use('/api/upload', require('./routes/upload'));
 
-// Servir app web estática (archivos existentes)
+// Manejo 404 para API (si llega aquí es porque no hay ruta API)
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: 'API endpoint not found', path: req.path });
+});
+
+// Servir archivos estáticos de la app web (sin fallback automático)
 const path = require('path');
 app.use(express.static(path.join(__dirname, '../mobile/dist')));
 
-// SPA fallback - solo para rutas que no empiezan con /api y no son archivos
+// SPA fallback - ÚLTIMO, solo para rutas que NO empiezan con /api
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api')) {
-    return res.status(404).json({ error: 'API endpoint not found' });
+    // Esto no debería pasar, pero por seguridad
+    return res.status(404).json({ error: 'API route not found', path: req.path });
   }
-  // Para cualquier otra ruta, servir el index.html (SPA)
+  // Servir SPA para cualquier ruta no-API
   res.sendFile(path.join(__dirname, '../mobile/dist/index.html'));
 });
 
