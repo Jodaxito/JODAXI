@@ -5,9 +5,11 @@ require('dotenv').config();
 
 const app = express();
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+// Middleware para loggear requests (debug)
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
 
 // Conectar a PostgreSQL
 const pool = new Pool({
@@ -378,6 +380,16 @@ app.post('/api/chats/:chatId/messages', async (req, res) => {
 // Ruta de prueba API
 app.get('/api', (req, res) => {
   res.json({ message: 'API JODAXI funcionando', status: 'OK' });
+});
+
+// DEBUG endpoint
+app.get('/api/debug', (req, res) => {
+  res.json({ 
+    timestamp: new Date().toISOString(),
+    apiVersion: '1.0',
+    environment: process.env.NODE_ENV || 'development',
+    database: 'PostgreSQL'
+  });
 });
 
 // Manejo 404 para API - DEBE ir antes de static pero después de las rutas API
