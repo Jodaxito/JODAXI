@@ -1,5 +1,5 @@
 // API Configuration
-const API_URL = 'https://jodaxi-api.onrender.com'; // Cambiar por tu URL de Render
+const API_URL = 'https://jodaxi.onrender.com'; // Cambiar por tu URL de Render
 
 // Helper para hacer peticiones
 const fetchAPI = async (endpoint: string, options?: RequestInit) => {
