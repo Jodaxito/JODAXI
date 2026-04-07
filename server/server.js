@@ -5,9 +5,15 @@ require('dotenv').config();
 
 const app = express();
 
+// Middleware esenciales PRIMERO
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 // Middleware para loggear requests (debug)
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  console.log('Body:', req.body);
   next();
 });
 
@@ -51,7 +57,7 @@ const initDB = async () => {
         tipo_transaccion VARCHAR(50) NOT NULL,
         imagen TEXT DEFAULT '',
         categoria VARCHAR(100) DEFAULT 'Otros',
-        user_id INTEGER REFERENCES users(id),
+        user_id BIGINT,
         user_name VARCHAR(255),
         user_email VARCHAR(255),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -75,7 +81,7 @@ const initDB = async () => {
       CREATE TABLE IF NOT EXISTS chat_participants (
         id SERIAL PRIMARY KEY,
         chat_id INTEGER REFERENCES chats(id),
-        user_id INTEGER REFERENCES users(id),
+        user_id BIGINT,
         user_name VARCHAR(255)
       )
     `);
@@ -85,7 +91,7 @@ const initDB = async () => {
       CREATE TABLE IF NOT EXISTS messages (
         id SERIAL PRIMARY KEY,
         chat_id INTEGER REFERENCES chats(id),
-        sender_id INTEGER REFERENCES users(id),
+        sender_id BIGINT,
         text TEXT NOT NULL,
         is_read BOOLEAN DEFAULT false,
         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
