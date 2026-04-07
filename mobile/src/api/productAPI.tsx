@@ -6,7 +6,10 @@ const API_URL = 'https://jodaxi.onrender.com';
 
 // Helper para hacer peticiones
 const fetchAPI = async (endpoint: string, options?: RequestInit) => {
+    console.log('API CALL:', endpoint, options?.method || 'GET');
     const token = await AsyncStorage.getItem('token');
+    console.log('Token:', token ? 'exists' : 'none');
+    
     const response = await fetch(`${API_URL}${endpoint}`, {
         ...options,
         headers: {
@@ -15,6 +18,8 @@ const fetchAPI = async (endpoint: string, options?: RequestInit) => {
             ...options?.headers,
         },
     });
+    
+    console.log('Response status:', response.status);
     
     if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -115,7 +120,9 @@ export const productAPI = {
     },
     
     create: async (data: any) => {
+        console.log('Creating product...');
         const userStr = await AsyncStorage.getItem('user');
+        console.log('User from storage:', userStr);
         const user: User = JSON.parse(userStr || '{}');
         
         const productData = {
@@ -124,6 +131,8 @@ export const productAPI = {
             user_name: user.name,
             user_email: user.email,
         };
+        
+        console.log('Product data:', productData);
         
         return fetchAPI('/api/products', {
             method: 'POST',
