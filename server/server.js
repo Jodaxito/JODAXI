@@ -98,38 +98,28 @@ const initDB = async () => {
 
 initDB();
 
-// Ruta de prueba API (PRIMERA)
-app.get('/api', (req, res) => {
-  res.json({ message: 'API JODAXI funcionando con PostgreSQL', status: 'OK' });
-});
-
-// Health check para Render
-app.get('/health', (req, res) => {
-  res.json({ status: 'healthy', timestamp: new Date().toISOString() });
-});
-
 // Rutas API (antes que todo lo demás)
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/chats', require('./routes/chats'));
 app.use('/api/upload', require('./routes/upload'));
 
-// Manejo 404 para API (si llega aquí es porque no hay ruta API)
+// Ruta de prueba API
+app.get('/api', (req, res) => {
+  res.json({ message: 'API JODAXI funcionando con PostgreSQL', status: 'OK' });
+});
+
+// Manejo 404 para API
 app.use('/api', (req, res) => {
   res.status(404).json({ error: 'API endpoint not found', path: req.path });
 });
 
-// Servir archivos estáticos de la app web (sin fallback automático)
+// Servir archivos estáticos (sin index.html por defecto)
 const path = require('path');
-app.use(express.static(path.join(__dirname, '../mobile/dist')));
+app.use(express.static(path.join(__dirname, '../mobile/dist'), { index: false }));
 
-// SPA fallback - ÚLTIMO, solo para rutas que NO empiezan con /api
+// SPA fallback - ÚLTIMO
 app.get('*', (req, res) => {
-  if (req.path.startsWith('/api')) {
-    // Esto no debería pasar, pero por seguridad
-    return res.status(404).json({ error: 'API route not found', path: req.path });
-  }
-  // Servir SPA para cualquier ruta no-API
   res.sendFile(path.join(__dirname, '../mobile/dist/index.html'));
 });
 
