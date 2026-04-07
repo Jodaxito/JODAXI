@@ -380,16 +380,16 @@ app.get('/api', (req, res) => {
   res.json({ message: 'API JODAXI funcionando', status: 'OK' });
 });
 
-// ============ WEB APP ============
-
-// Servir archivos estáticos (ANTES del 404 de API)
-const path = require('path');
-app.use(express.static(path.join(__dirname, '../mobile/dist')));
-
-// Manejo 404 para API - solo rutas API no encontradas
+// Manejo 404 para API - DEBE ir antes de static pero después de las rutas API
 app.use('/api', (req, res) => {
   res.status(404).json({ error: 'API endpoint not found', path: req.path });
 });
+
+// ============ WEB APP ============
+
+// Servir archivos estáticos al final, DESPUÉS de todas las rutas API
+const path = require('path');
+app.use(express.static(path.join(__dirname, '../mobile/dist')));
 
 // SPA fallback - redirigir todo al index.html
 app.get('*', (req, res) => {
