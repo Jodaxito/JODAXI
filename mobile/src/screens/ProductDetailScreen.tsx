@@ -76,6 +76,24 @@ export const ProductDetailScreen = ({ route, navigation }: Props) => {
         }
     };
 
+    const loadMyProducts = async () => {
+        try {
+            setLoading(true);
+            alert('user.id: ' + user?.id);
+            const response = await productAPI.getAll();
+            alert('Productos recibidos: ' + response.data.length);
+            // Filtrar solo los productos del usuario actual usando user_id
+            const myProducts = response.data.filter((p: Producto) => p.user_id === user?.id);
+            alert('Mis productos: ' + myProducts.length);
+            setProduct(myProducts[0]);
+        } catch (error: any) {
+            console.error('Error loading my products:', error);
+            alert('Error cargando: ' + error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     interface Chat {
         id: number;
         userId: number;
@@ -89,18 +107,22 @@ export const ProductDetailScreen = ({ route, navigation }: Props) => {
     }
 
     const handleContact = async () => {
+        alert('Click en Contactar');
         if (!product?.user_id || !user?.id) {
+            alert('Error: falta product.user_id o user.id');
             Alert.alert('Error', 'No se puede contactar al vendedor');
             return;
         }
 
         // No permitir contactarse a uno mismo
         if (product.user_id === user.id) {
+            alert('Error: no puedes contactarte a ti mismo');
             Alert.alert('Error', 'No puedes contactarte a ti mismo');
             return;
         }
 
         try {
+            alert('Creando chat...');
             // Crear chat via API
             const chatData = {
                 product_id: productId,
@@ -112,13 +134,16 @@ export const ProductDetailScreen = ({ route, navigation }: Props) => {
             };
             
             const response = await chatAPI.create(chatData);
+            alert('Chat creado: ' + response.data.id);
             const newChat = response.data;
 
             // Enviar mensaje inicial
+            alert('Enviando mensaje inicial...');
             await chatAPI.sendMessage(newChat.id, {
                 sender_id: user.id,
                 text: 'Hola, me interesa tu producto'
             });
+            alert('Mensaje enviado, navegando...');
 
             // Navegar al chat
             navigation.navigate('ChatDetailScreen', {
@@ -127,8 +152,9 @@ export const ProductDetailScreen = ({ route, navigation }: Props) => {
                 productId: productId,
                 productName: product.nombre
             });
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error creating chat:', error);
+            alert('Error: ' + error.message);
             Alert.alert('Error', 'No se pudo iniciar la conversación');
         }
     };
