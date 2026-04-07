@@ -98,17 +98,7 @@ const initDB = async () => {
 
 initDB();
 
-// Rutas
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/products', require('./routes/products'));
-app.use('/api/chats', require('./routes/chats'));
-app.use('/api/upload', require('./routes/upload'));
-
-// Servir app web estática (si existe)
-const path = require('path');
-app.use(express.static(path.join(__dirname, '../mobile/dist')));
-
-// Ruta de prueba API (solo si no hay app web)
+// Ruta de prueba API
 app.get('/api', (req, res) => {
   res.json({ message: 'API JODAXI funcionando con PostgreSQL', status: 'OK' });
 });
@@ -118,7 +108,17 @@ app.get('/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
-// Redirigir todas las rutas al index.html de la app web
+// Rutas API
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/products', require('./routes/products'));
+app.use('/api/chats', require('./routes/chats'));
+app.use('/api/upload', require('./routes/upload'));
+
+// Servir app web estática (si existe)
+const path = require('path');
+app.use(express.static(path.join(__dirname, '../mobile/dist')));
+
+// Redirigir rutas no-API al index.html de la app web
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../mobile/dist/index.html'));
 });
