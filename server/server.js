@@ -118,10 +118,10 @@ app.use('/api', (req, res) => {
 const path = require('path');
 app.use(express.static(path.join(__dirname, '../mobile/dist'), { index: false }));
 
-// SPA fallback - ÚLTIMO
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../mobile/dist/index.html'));
-});
+// SPA fallback - ÚLTIMO (temporalmente deshabilitado para debug)
+// app.get('*', (req, res) => {
+//   res.sendFile(path.join(__dirname, '../mobile/dist/index.html'));
+// });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
