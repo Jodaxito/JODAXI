@@ -98,15 +98,34 @@ const initDB = async () => {
 
 initDB();
 
-// Rutas API (antes que todo lo demás)
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/products', require('./routes/products'));
-app.use('/api/chats', require('./routes/chats'));
-app.use('/api/upload', require('./routes/upload'));
+// Rutas API directas (sin require de archivos externos para debug)
+app.get('/api/products', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM products ORDER BY created_at DESC');
+    res.json({ data: result.rows });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Error en el servidor' });
+  }
+});
 
-// Ruta de prueba API
+app.post('/api/products', async (req, res) => {
+  try {
+    const { nombre, descripcion, precio, estado, tipo_transaccion, imagen, categoria, user_id, user_name, user_email } = req.body;
+    const result = await pool.query(
+      `INSERT INTO products (nombre, descripcion, precio, estado, tipo_transaccion, imagen, categoria, user_id, user_name, user_email) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+      [nombre, descripcion, precio, estado, tipo_transaccion, imagen, categoria, user_id, user_name, user_email]
+    );
+    res.status(201).json({ data: result.rows[0] });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Error en el servidor' });
+  }
+});
+
 app.get('/api', (req, res) => {
-  res.json({ message: 'API JODAXI funcionando con PostgreSQL', status: 'OK' });
+  res.json({ message: 'API JODAXI funcionando', status: 'OK' });
 });
 
 // Manejo 404 para API
