@@ -99,6 +99,29 @@ const initDB = async () => {
     `);
 
     console.log('Tablas de PostgreSQL creadas/verificadas');
+    
+    // Migrar columnas user_id a BIGINT si son INTEGER
+    try {
+      await pool.query(`ALTER TABLE products ALTER COLUMN user_id TYPE BIGINT`);
+      console.log('Columna user_id en products cambiada a BIGINT');
+    } catch (e) {
+      // Ignorar error si ya es BIGINT o no existe
+    }
+    
+    try {
+      await pool.query(`ALTER TABLE chat_participants ALTER COLUMN user_id TYPE BIGINT`);
+      console.log('Columna user_id en chat_participants cambiada a BIGINT');
+    } catch (e) {
+      // Ignorar error si ya es BIGINT o no existe
+    }
+    
+    try {
+      await pool.query(`ALTER TABLE messages ALTER COLUMN sender_id TYPE BIGINT`);
+      console.log('Columna sender_id en messages cambiada a BIGINT');
+    } catch (e) {
+      // Ignorar error si ya es BIGINT o no existe
+    }
+    
   } catch (error) {
     console.error('Error inicializando base de datos:', error);
   }
