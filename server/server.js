@@ -108,6 +108,14 @@ const initDB = async () => {
       // Ignorar error si ya es BIGINT o no existe
     }
     
+    // Eliminar foreign key constraint si existe
+    try {
+      await pool.query(`ALTER TABLE products DROP CONSTRAINT IF EXISTS products_user_id_fkey`);
+      console.log('Foreign key constraint eliminada');
+    } catch (e) {
+      // Ignorar si no existe
+    }
+    
     try {
       await pool.query(`ALTER TABLE chat_participants ALTER COLUMN user_id TYPE BIGINT`);
       console.log('Columna user_id en chat_participants cambiada a BIGINT');
