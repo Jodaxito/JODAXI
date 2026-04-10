@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "JODAXI",
+    "slug": "jodaxi-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.jodaxi.app"
+    },
+    "android": {
+      "package": "com.jodaxi.app"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "a6950c70-1e72-4847-8f7a-1fec61131a1a"
+      }
+    }
+  }
+}
