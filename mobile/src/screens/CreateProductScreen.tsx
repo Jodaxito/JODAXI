@@ -39,14 +39,17 @@ const CATEGORIES = [
 
 const CONDITIONS = ['Nuevo', 'Como nuevo', 'Buen estado', 'Usado', 'Para reparar'];
 
-export const CreateProductScreen = ({ navigation }: Props) => {
-    const [name, setName] = useState('');
-    const [description, setDescription] = useState('');
-    const [price, setPrice] = useState('');
-    const [selectedType, setSelectedType] = useState('venta');
-    const [selectedCategory, setSelectedCategory] = useState('Otros');
-    const [selectedCondition, setSelectedCondition] = useState('Nuevo');
-    const [image, setImage] = useState<string | null>(null);
+export const CreateProductScreen = ({ navigation, route }: Props) => {
+    const editingProduct = route.params?.product;
+    const isEditing = !!editingProduct;
+
+    const [name, setName] = useState(editingProduct?.nombre || '');
+    const [description, setDescription] = useState(editingProduct?.descripcion || '');
+    const [price, setPrice] = useState(editingProduct?.precio?.toString() || '');
+    const [selectedType, setSelectedType] = useState(editingProduct?.tipo_transaccion || 'venta');
+    const [selectedCategory, setSelectedCategory] = useState(editingProduct?.categoria || 'Otros');
+    const [selectedCondition, setSelectedCondition] = useState(editingProduct?.estado || 'Nuevo');
+    const [image, setImage] = useState<string | null>(editingProduct?.imagen || null);
     const [loading, setLoading] = useState(false);
     const { user } = useAuth();
 
@@ -84,8 +87,13 @@ export const CreateProductScreen = ({ navigation }: Props) => {
                 user_email: user?.email,
             };
 
-            await productAPI.create(productData);
-            Alert.alert('Éxito', 'Producto publicado correctamente');
+            if (isEditing) {
+                await productAPI.update(editingProduct.id, productData);
+                Alert.alert('Éxito', 'Producto actualizado correctamente');
+            } else {
+                await productAPI.create(productData);
+                Alert.alert('Éxito', 'Producto publicado correctamente');
+            }
             navigation.goBack();
         } catch (error) {
             Alert.alert('Error', 'No se pudo publicar el producto');
@@ -100,7 +108,7 @@ export const CreateProductScreen = ({ navigation }: Props) => {
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Ionicons name="close" size={28} color={colors.gray} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Nuevo Producto</Text>
+                <Text style={styles.headerTitle}>{isEditing ? 'Editar Producto' : 'Nuevo Producto'}</Text>
                 <TouchableOpacity
                     style={[styles.publishButton, loading && styles.publishButtonDisabled]}
                     onPress={handleSubmit}
@@ -109,7 +117,7 @@ export const CreateProductScreen = ({ navigation }: Props) => {
                     {loading ? (
                         <ActivityIndicator size="small" color={colors.white} />
                     ) : (
-                        <Text style={styles.publishButtonText}>Publicar</Text>
+                        <Text style={styles.publishButtonText}>{isEditing ? 'Guardar' : 'Publicar'}</Text>
                     )}
                 </TouchableOpacity>
             </View>

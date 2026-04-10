@@ -80,6 +80,10 @@ export const MyProductsScreen = ({ navigation }: Props) => {
         );
     };
 
+    const handleEditProduct = (product: Producto) => {
+        navigation.navigate('CreateProduct', { product });
+    };
+
     const renderProduct = ({ item }: { item: Producto }) => {
         const typeInfo = TRANSACTION_TYPES[item.tipo_transaccion as keyof typeof TRANSACTION_TYPES];
 
@@ -106,12 +110,20 @@ export const MyProductsScreen = ({ navigation }: Props) => {
                         )}
                     </View>
                 </View>
-                <TouchableOpacity
-                    style={styles.deleteButton}
-                    onPress={() => handleDeleteProduct(item.id)}
-                >
-                    <Ionicons name="trash-outline" size={20} color={colors.error} />
-                </TouchableOpacity>
+                <View style={styles.actionButtons}>
+                    <TouchableOpacity
+                        style={styles.editButton}
+                        onPress={() => handleEditProduct(item)}
+                    >
+                        <Ionicons name="create-outline" size={20} color={colors.primary} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.deleteButton}
+                        onPress={() => handleDeleteProduct(item.id)}
+                    >
+                        <Ionicons name="trash-outline" size={20} color={colors.error} />
+                    </TouchableOpacity>
+                </View>
             </View>
         );
     };
@@ -285,6 +297,15 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
         color: colors.primary,
+    },
+    actionButtons: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    editButton: {
+        justifyContent: 'center',
+        paddingHorizontal: 8,
     },
     deleteButton: {
         justifyContent: 'center',

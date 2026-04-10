@@ -25,7 +25,7 @@ export type HomeStackParamList = {
 export type ProfileStackParamList = {
     Profile: undefined;
     MyProducts: undefined;
-    CreateProduct: undefined;
+    CreateProduct: { product?: any };
     Favorites: undefined;
     Settings: undefined;
     Chats: undefined;
