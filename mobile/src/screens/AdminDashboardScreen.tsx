@@ -102,6 +102,8 @@ export const AdminDashboardScreen = ({ navigation }: Props) => {
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
     const [notificationMessage, setNotificationMessage] = useState('');
+    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+    const [productToDelete, setProductToDelete] = useState<number | null>(null);
 
     const isAdmin = user && ADMIN_EMAILS.includes(user.email);
 
@@ -144,28 +146,26 @@ export const AdminDashboardScreen = ({ navigation }: Props) => {
         }
     };
 
-    const handleDeleteProduct = async (productId: number) => {
-        Alert.alert(
-            'Eliminar Producto',
-            '¿Estás seguro de que quieres eliminar este producto?',
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                    text: 'Eliminar',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            // Eliminar desde el backend
-                            await productAPI.delete(productId);
-                            Alert.alert('Éxito', 'Producto eliminado');
-                            loadData();
-                        } catch (error) {
-                            Alert.alert('Error', 'No se pudo eliminar el producto');
-                        }
-                    }
-                }
-            ]
-        );
+    const handleDeleteProduct = (productId: number) => {
+        setProductToDelete(productId);
+        setDeleteModalVisible(true);
+    };
+
+    const confirmDeleteProduct = async () => {
+        if (!productToDelete) return;
+        try {
+            await productAPI.delete(productToDelete);
+            setDeleteModalVisible(false);
+            setProductToDelete(null);
+            loadData();
+        } catch (error) {
+            Alert.alert('Error', 'No se pudo eliminar el producto');
+        }
+    };
+
+    const cancelDeleteProduct = () => {
+        setDeleteModalVisible(false);
+        setProductToDelete(null);
     };
 
     const handleSendNotification = async () => {
@@ -415,6 +415,26 @@ export const AdminDashboardScreen = ({ navigation }: Props) => {
                     </View>
                 </View>
             </Modal>
+
+            {/* Modal de confirmación para eliminar producto */}
+            {deleteModalVisible && (
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Eliminar producto</Text>
+                        <Text style={styles.modalText}>
+                            ¿Estás seguro de que quieres eliminar este producto?
+                        </Text>
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity style={styles.modalCancelButton} onPress={cancelDeleteProduct}>
+                                <Text style={styles.modalCancelText}>Cancelar</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.modalDeleteButton} onPress={confirmDeleteProduct}>
+                                <Text style={styles.modalDeleteText}>Eliminar</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            )}
         </View>
     );
 };
@@ -704,5 +724,32 @@ const styles = StyleSheet.create({
         color: colors.error,
         textAlign: 'center',
         marginTop: 100,
+    },
+    modalText: {
+        fontSize: 14,
+        color: colors.gray,
+        textAlign: 'center',
+        marginBottom: 20,
+    },
+    modalCancelButton: {
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 8,
+        backgroundColor: '#e5e7eb',
+        marginRight: 10,
+    },
+    modalCancelText: {
+        color: colors.black,
+        fontWeight: '600',
+    },
+    modalDeleteButton: {
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 8,
+        backgroundColor: '#ef4444',
+    },
+    modalDeleteText: {
+        color: colors.white,
+        fontWeight: '600',
     },
 });
