@@ -107,7 +107,7 @@ export const ChatDetailScreen = ({ route, navigation }: Props) => {
     };
 
     const renderMessage = ({ item }: { item: Message }) => {
-        const isMyMessage = item.senderId === user?.id;
+        const isMyMessage = Number(item.senderId) === Number(user?.id);
         
         return (
             <View style={[
