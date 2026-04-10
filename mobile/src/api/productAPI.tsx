@@ -6,9 +6,7 @@ const API_URL = 'https://jodaxi.onrender.com';
 
 // Helper para hacer peticiones
 const fetchAPI = async (endpoint: string, options?: RequestInit) => {
-    console.log('API CALL:', endpoint, options?.method || 'GET');
     const token = await AsyncStorage.getItem('token');
-    console.log('Token:', token ? 'exists' : 'none');
     
     const response = await fetch(`${API_URL}${endpoint}`, {
         ...options,
@@ -18,8 +16,6 @@ const fetchAPI = async (endpoint: string, options?: RequestInit) => {
             ...options?.headers,
         },
     });
-    
-    console.log('Response status:', response.status);
     
     if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -77,35 +73,25 @@ const MOCK_CATEGORIAS: Categoria[] = [
 // Auth API - Backend
 export const authAPI = {
     login: async (email: string, password: string) => {
-        try {
-            const response = await fetchAPI('/api/auth/login', {
-                method: 'POST',
-                body: JSON.stringify({ email, password }),
-            });
-            const { user, token } = response.data;
-            await AsyncStorage.setItem('token', token);
-            await AsyncStorage.setItem('user', JSON.stringify(user));
-            return response;
-        } catch (error) {
-            alert('Error en login: ' + (error as Error).message);
-            throw error;
-        }
+        const response = await fetchAPI('/api/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ email, password }),
+        });
+        const { user, token } = response.data;
+        await AsyncStorage.setItem('token', token);
+        await AsyncStorage.setItem('user', JSON.stringify(user));
+        return response;
     },
     
     register: async (name: string, username: string, email: string, password: string) => {
-        try {
-            const response = await fetchAPI('/api/auth/register', {
-                method: 'POST',
-                body: JSON.stringify({ name, username, email, password }),
-            });
-            const { user, token } = response.data;
-            await AsyncStorage.setItem('token', token);
-            await AsyncStorage.setItem('user', JSON.stringify(user));
-            return response;
-        } catch (error) {
-            alert('Error en registro: ' + (error as Error).message);
-            throw error;
-        }
+        const response = await fetchAPI('/api/auth/register', {
+            method: 'POST',
+            body: JSON.stringify({ name, username, email, password }),
+        });
+        const { user, token } = response.data;
+        await AsyncStorage.setItem('token', token);
+        await AsyncStorage.setItem('user', JSON.stringify(user));
+        return response;
     },
     
     logout: async () => {
@@ -130,9 +116,7 @@ export const productAPI = {
     },
     
     create: async (data: any) => {
-        alert('Iniciando creación de producto...');
         const userStr = await AsyncStorage.getItem('user');
-        alert('Usuario: ' + (userStr ? 'encontrado' : 'NO encontrado'));
         const user: User = JSON.parse(userStr || '{}');
         
         const productData = {
@@ -142,19 +126,10 @@ export const productAPI = {
             user_email: user.email,
         };
         
-        alert('Enviando a: ' + API_URL + '/api/products');
-        
-        try {
-            const result = await fetchAPI('/api/products', {
-                method: 'POST',
-                body: JSON.stringify(productData),
-            });
-            alert('Producto creado exitosamente!');
-            return result;
-        } catch (error) {
-            alert('Error al crear: ' + (error as Error).message);
-            throw error;
-        }
+        return fetchAPI('/api/products', {
+            method: 'POST',
+            body: JSON.stringify(productData),
+        });
     },
     
     update: async (id: number, data: any) => {
