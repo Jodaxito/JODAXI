@@ -98,7 +98,7 @@ const initDB = async () => {
       )
     `);
 
-    console.log('Tablas de PostgreSQL creadas/verificadas');
+    console.log('Tablas de PostgreSQL creadas/verificadas correctamente');
     
     // Migrar columnas user_id a BIGINT si son INTEGER
     try {
@@ -263,7 +263,7 @@ app.get('/api/products', async (req, res) => {
     const result = await pool.query(`
       SELECT id, nombre, descripcion, precio, estado, tipo_transaccion, 
              imagen, categoria, user_id, user_name, user_email, 
-             created_at, updated_at
+             created_at
       FROM products 
       ORDER BY created_at DESC
     `);
@@ -278,7 +278,11 @@ app.get('/api/products', async (req, res) => {
 // GET /api/products/:id - Obtener un producto
 app.get('/api/products/:id', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM products WHERE id = $1', [req.params.id]);
+    const result = await pool.query(`
+      SELECT id, nombre, descripcion, precio, estado, tipo_transaccion, 
+             imagen, categoria, user_id, user_name, user_email, created_at 
+      FROM products WHERE id = $1
+    `, [req.params.id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Producto no encontrado' });
     }
@@ -295,7 +299,8 @@ app.post('/api/products', async (req, res) => {
     const { nombre, descripcion, precio, estado, tipo_transaccion, imagen, categoria, user_id, user_name, user_email } = req.body;
     const result = await pool.query(
       `INSERT INTO products (nombre, descripcion, precio, estado, tipo_transaccion, imagen, categoria, user_id, user_name, user_email) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+       RETURNING id, nombre, descripcion, precio, estado, tipo_transaccion, imagen, categoria, user_id, user_name, user_email, created_at`,
       [nombre, descripcion, precio, estado, tipo_transaccion, imagen, categoria, user_id, user_name, user_email]
     );
     res.status(201).json({ data: result.rows[0] });
@@ -311,7 +316,8 @@ app.put('/api/products/:id', async (req, res) => {
     const { nombre, descripcion, precio, estado, tipo_transaccion, imagen, categoria } = req.body;
     const result = await pool.query(
       `UPDATE products SET nombre=$1, descripcion=$2, precio=$3, estado=$4, tipo_transaccion=$5, imagen=$6, categoria=$7 
-       WHERE id=$8 RETURNING *`,
+       WHERE id=$8 
+       RETURNING id, nombre, descripcion, precio, estado, tipo_transaccion, imagen, categoria, user_id, user_name, user_email, created_at`,
       [nombre, descripcion, precio, estado, tipo_transaccion, imagen, categoria, req.params.id]
     );
     if (result.rows.length === 0) {
@@ -327,7 +333,7 @@ app.put('/api/products/:id', async (req, res) => {
 // DELETE /api/products/:id - Eliminar producto
 app.delete('/api/products/:id', async (req, res) => {
   try {
-    const result = await pool.query('DELETE FROM products WHERE id = $1 RETURNING *', [req.params.id]);
+    const result = await pool.query('DELETE FROM products WHERE id = $1 RETURNING id', [req.params.id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Producto no encontrado' });
     }
@@ -342,7 +348,9 @@ app.delete('/api/products/:id', async (req, res) => {
 app.get('/api/products/user/:userId', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT * FROM products WHERE user_id = $1 ORDER BY created_at DESC',
+      `SELECT id, nombre, descripcion, precio, estado, tipo_transaccion, 
+              imagen, categoria, user_id, user_name, user_email, created_at 
+       FROM products WHERE user_id = $1 ORDER BY created_at DESC`,
       [req.params.userId]
     );
     res.json({ data: result.rows });
@@ -471,6 +479,6 @@ app.get('*', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Servidor corriendo en puerto ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Servidor JODAXI corriendo en puerto ${PORT}`);
 });
