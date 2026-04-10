@@ -251,18 +251,26 @@ export const AdminDashboardScreen = ({ navigation }: Props) => {
     };
 
     const handleDeleteProduct = (productId: number) => {
+        console.log('handleDeleteProduct llamado con ID:', productId);
         setProductToDelete(productId);
         setDeleteModalVisible(true);
     };
 
     const confirmDeleteProduct = async () => {
-        if (!productToDelete) return;
+        console.log('confirmDeleteProduct llamado', productToDelete);
+        if (!productToDelete) {
+            console.log('No hay producto para eliminar');
+            return;
+        }
         try {
-            await productAPI.delete(productToDelete);
+            console.log('Llamando a productAPI.delete con ID:', productToDelete);
+            const result = await productAPI.delete(productToDelete);
+            console.log('Resultado de delete:', result);
             setDeleteModalVisible(false);
             setProductToDelete(null);
             loadData();
         } catch (error) {
+            console.error('Error al eliminar producto:', error);
             Alert.alert('Error', 'No se pudo eliminar el producto');
         }
     };

@@ -140,9 +140,25 @@ export const productAPI = {
     },
     
     delete: async (id: number) => {
-        return fetchAPI(`/api/products/${id}`, {
+        const token = await AsyncStorage.getItem('token');
+        const response = await fetch(`${API_URL}/api/products/${id}`, {
             method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token && { 'Authorization': `Bearer ${token}` }),
+            },
         });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        // DELETE puede no tener body, así que verificamos antes de parsear
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            return response.json();
+        }
+        return { success: true };
     },
     
     deleteAll: async () => {
