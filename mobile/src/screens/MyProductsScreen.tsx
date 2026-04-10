@@ -33,6 +33,8 @@ export const MyProductsScreen = ({ navigation }: Props) => {
     const [products, setProducts] = useState<Producto[]>([]);
     const [refreshing, setRefreshing] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+    const [productToDelete, setProductToDelete] = useState<number | null>(null);
 
     useEffect(() => {
         loadMyProducts();
@@ -59,29 +61,26 @@ export const MyProductsScreen = ({ navigation }: Props) => {
     };
 
     const handleDeleteProduct = (productId: number) => {
-        const confirmDelete = async () => {
-            try {
-                await productAPI.delete(productId);
-                await loadMyProducts();
-                Alert.alert('Éxito', 'Producto eliminado correctamente');
-            } catch (error) {
-                console.error('Error eliminando producto:', error);
-                Alert.alert('Error', 'No se pudo eliminar el producto');
-            }
-        };
+        setProductToDelete(productId);
+        setDeleteModalVisible(true);
+    };
 
-        Alert.alert(
-            'Eliminar producto',
-            '¿Estás seguro de que quieres eliminar este producto?',
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                    text: 'Eliminar',
-                    style: 'destructive',
-                    onPress: confirmDelete,
-                },
-            ]
-        );
+    const confirmDelete = async () => {
+        if (!productToDelete) return;
+        try {
+            await productAPI.delete(productToDelete);
+            await loadMyProducts();
+            setDeleteModalVisible(false);
+            setProductToDelete(null);
+        } catch (error) {
+            console.error('Error eliminando producto:', error);
+            Alert.alert('Error', 'No se pudo eliminar el producto');
+        }
+    };
+
+    const cancelDelete = () => {
+        setDeleteModalVisible(false);
+        setProductToDelete(null);
     };
 
     const handleEditProduct = (product: Producto) => {
@@ -195,6 +194,26 @@ export const MyProductsScreen = ({ navigation }: Props) => {
                         </View>
                     }
                 />
+            )}
+
+            {/* Modal de confirmación para eliminar */}
+            {deleteModalVisible && (
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Eliminar producto</Text>
+                        <Text style={styles.modalText}>
+                            ¿Estás seguro de que quieres eliminar este producto?
+                        </Text>
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity style={styles.modalCancelButton} onPress={cancelDelete}>
+                                <Text style={styles.modalCancelText}>Cancelar</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.modalDeleteButton} onPress={confirmDelete}>
+                                <Text style={styles.modalDeleteText}>Eliminar</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
             )}
         </SafeAreaView>
     );
@@ -362,6 +381,61 @@ const styles = StyleSheet.create({
         color: colors.white,
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    modalOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+    },
+    modalContent: {
+        backgroundColor: colors.white,
+        borderRadius: 12,
+        padding: 24,
+        width: '80%',
+        maxWidth: 320,
+        alignItems: 'center',
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#374151',
+        marginBottom: 12,
+    },
+    modalText: {
+        fontSize: 14,
+        color: colors.gray,
+        textAlign: 'center',
+        marginBottom: 24,
+    },
+    modalButtons: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    modalCancelButton: {
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 8,
+        backgroundColor: '#e5e7eb',
+    },
+    modalCancelText: {
+        color: '#374151',
+        fontWeight: '600',
+    },
+    modalDeleteButton: {
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 8,
+        backgroundColor: colors.error,
+    },
+    modalDeleteText: {
+        color: colors.white,
+        fontWeight: '600',
     },
 });
 
