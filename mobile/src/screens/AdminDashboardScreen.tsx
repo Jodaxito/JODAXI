@@ -731,6 +731,11 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: 20,
     },
+    modalButtons: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        marginTop: 10,
+    },
     modalCancelButton: {
         paddingHorizontal: 20,
         paddingVertical: 10,
