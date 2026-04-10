@@ -545,107 +545,50 @@ app.get('/api/debug', (req, res) => {
 // Endpoint para seed de datos (solo para desarrollo/pruebas)
 app.post('/api/seed', async (req, res) => {
   try {
-    // Verificar si la tabla existe
-    const tableCheck = await req.db.query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_name = 'products'
-      );
+    // Eliminar tabla si existe (para recrear con esquema correcto)
+    await req.db.query(`DROP TABLE IF EXISTS products CASCADE`);
+    
+    // Crear tabla con esquema correcto
+    await req.db.query(`
+      CREATE TABLE products (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        price DECIMAL(10,2) NOT NULL,
+        image_url VARCHAR(500),
+        user_id INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
     `);
     
-    if (!tableCheck.rows[0].exists) {
-      // Crear tabla si no existe
-      await req.db.query(`
-        CREATE TABLE IF NOT EXISTS products (
-          id SERIAL PRIMARY KEY,
-          title VARCHAR(255) NOT NULL,
-          description TEXT,
-          price DECIMAL(10,2) NOT NULL,
-          image_url VARCHAR(500),
-          user_id INTEGER NOT NULL,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-    }
-    
-    // Verificar el esquema de la tabla
-    const schemaResult = await req.db.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'products'
-      ORDER BY ordinal_position;
-    `);
-    const columns = schemaResult.rows.map(r => r.column_name);
-    console.log('Columnas detectadas:', columns);
-    
-    // Construir INSERT dinámico basado en columnas existentes
-    const hasTitle = columns.includes('title');
-    const hasName = columns.includes('name');
-    const hasUserName = columns.includes('user_name');
-    const hasUserId = columns.includes('user_id');
-    
-    const titleCol = hasTitle ? 'title' : hasName ? 'name' : 'title';
-    const columnsList = [titleCol, 'description', 'price', 'image_url'];
-    if (hasUserId) columnsList.push('user_id');
-    if (hasUserName) columnsList.push('user_name');
-    columnsList.push('created_at');
+    console.log('Tabla products recreada correctamente');
     
     // Insertar productos con fechas distribuidas
-    const products = [
-      ['Laptop HP', 'Laptop en buen estado', 8500, 'https://via.placeholder.com/150', 1, 'Admin'],
-      ['iPhone 12', 'Celular usado', 12000, 'https://via.placeholder.com/150', 1, 'Admin'],
-      ['Audífonos Sony', 'Inalámbricos', 2500, 'https://via.placeholder.com/150', 2, 'Usuario1'],
-      ['Mouse Logitech', 'Gamer', 800, 'https://via.placeholder.com/150', 2, 'Usuario1'],
-      ['Teclado mecánico', 'RGB', 1500, 'https://via.placeholder.com/150', 1, 'Admin'],
-      ['Monitor 24 pulgadas', 'Full HD', 4500, 'https://via.placeholder.com/150', 3, 'Usuario2'],
-      ['Cámara Canon', 'Fotografía', 15000, 'https://via.placeholder.com/150', 3, 'Usuario2'],
-      ['Tablet Samsung', 'Para dibujo', 6000, 'https://via.placeholder.com/150', 2, 'Usuario1'],
-      ['Smartwatch', 'Fitness', 3000, 'https://via.placeholder.com/150', 1, 'Admin'],
-      ['Router WiFi', 'Dual band', 1200, 'https://via.placeholder.com/150', 3, 'Usuario2'],
-      ['Disco duro 1TB', 'Externo', 2000, 'https://via.placeholder.com/150', 2, 'Usuario1'],
-      ['Webcam HD', 'Para streaming', 900, 'https://via.placeholder.com/150', 1, 'Admin'],
-      ['Micrófono USB', 'Condensador', 1800, 'https://via.placeholder.com/150', 3, 'Usuario2'],
-      ['Batería portátil', '20000mAh', 700, 'https://via.placeholder.com/150', 2, 'Usuario1'],
-      ['Hub USB', '7 puertos', 400, 'https://via.placeholder.com/150', 1, 'Admin']
-    ];
+    const seedSQL = `
+      INSERT INTO products (title, description, price, image_url, user_id, created_at) VALUES
+      ('Laptop HP', 'Laptop en buen estado', 8500, 'https://via.placeholder.com/150', 1, NOW()),
+      ('iPhone 12', 'Celular usado', 12000, 'https://via.placeholder.com/150', 1, NOW() - INTERVAL '1 day'),
+      ('Audífonos Sony', 'Inalámbricos', 2500, 'https://via.placeholder.com/150', 2, NOW() - INTERVAL '1 day'),
+      ('Mouse Logitech', 'Gamer', 800, 'https://via.placeholder.com/150', 2, NOW() - INTERVAL '2 days'),
+      ('Teclado mecánico', 'RGB', 1500, 'https://via.placeholder.com/150', 1, NOW() - INTERVAL '2 days'),
+      ('Monitor 24 pulgadas', 'Full HD', 4500, 'https://via.placeholder.com/150', 3, NOW() - INTERVAL '3 days'),
+      ('Cámara Canon', 'Fotografía', 15000, 'https://via.placeholder.com/150', 3, NOW() - INTERVAL '3 days'),
+      ('Tablet Samsung', 'Para dibujo', 6000, 'https://via.placeholder.com/150', 2, NOW() - INTERVAL '4 days'),
+      ('Smartwatch', 'Fitness', 3000, 'https://via.placeholder.com/150', 1, NOW() - INTERVAL '4 days'),
+      ('Router WiFi', 'Dual band', 1200, 'https://via.placeholder.com/150', 3, NOW() - INTERVAL '5 days'),
+      ('Disco duro 1TB', 'Externo', 2000, 'https://via.placeholder.com/150', 2, NOW() - INTERVAL '5 days'),
+      ('Webcam HD', 'Para streaming', 900, 'https://via.placeholder.com/150', 1, NOW() - INTERVAL '6 days'),
+      ('Micrófono USB', 'Condensador', 1800, 'https://via.placeholder.com/150', 3, NOW() - INTERVAL '6 days'),
+      ('Batería portátil', '20000mAh', 700, 'https://via.placeholder.com/150', 2, NOW() - INTERVAL '7 days'),
+      ('Hub USB', '7 puertos', 400, 'https://via.placeholder.com/150', 1, NOW() - INTERVAL '7 days')
+    `;
     
-    let insertedCount = 0;
-    for (let i = 0; i < products.length; i++) {
-      const p = products[i];
-      const daysAgo = Math.floor(i / 2); // Distribuir en días
-      
-      try {
-        const values = [p[0], p[1], p[2], p[3]];
-        const placeholders = ['$1', '$2', '$3', '$4'];
-        let paramIndex = 5;
-        
-        if (hasUserId) {
-          values.push(p[4]);
-          placeholders.push(`$${paramIndex++}`);
-        }
-        if (hasUserName) {
-          values.push(p[5]);
-          placeholders.push(`$${paramIndex++}`);
-        }
-        values.push(daysAgo);
-        placeholders.push(`NOW() - INTERVAL '$${paramIndex++} days'`);
-        
-        await req.db.query(`
-          INSERT INTO products (${columnsList.join(', ')}) 
-          VALUES (${placeholders.join(', ')})
-        `, values);
-        
-        insertedCount++;
-      } catch (insertError) {
-        console.log(`Producto ${p[0]} ya existe o error:`, insertError.message);
-      }
-    }
+    await req.db.query(seedSQL);
     
     res.json({ 
       success: true, 
-      message: 'Datos de prueba insertados',
-      inserted: insertedCount,
-      columnsFound: columns
+      message: 'Tabla recreada y datos insertados correctamente',
+      inserted: 15
     });
   } catch (error) {
     console.error('Error seeding data:', error);
