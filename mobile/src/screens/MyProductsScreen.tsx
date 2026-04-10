@@ -59,6 +59,17 @@ export const MyProductsScreen = ({ navigation }: Props) => {
     };
 
     const handleDeleteProduct = (productId: number) => {
+        const confirmDelete = async () => {
+            try {
+                await productAPI.delete(productId);
+                await loadMyProducts();
+                Alert.alert('Éxito', 'Producto eliminado correctamente');
+            } catch (error) {
+                console.error('Error eliminando producto:', error);
+                Alert.alert('Error', 'No se pudo eliminar el producto');
+            }
+        };
+
         Alert.alert(
             'Eliminar producto',
             '¿Estás seguro de que quieres eliminar este producto?',
@@ -67,14 +78,7 @@ export const MyProductsScreen = ({ navigation }: Props) => {
                 {
                     text: 'Eliminar',
                     style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            await productAPI.delete(productId);
-                            loadMyProducts();
-                        } catch (error) {
-                            Alert.alert('Error', 'No se pudo eliminar el producto');
-                        }
-                    },
+                    onPress: confirmDelete,
                 },
             ]
         );
