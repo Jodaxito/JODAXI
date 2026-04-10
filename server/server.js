@@ -367,7 +367,11 @@ app.get('/api/chats', async (req, res) => {
   try {
     const userId = req.query.userId;
     const result = await pool.query(
-      `SELECT c.*, p.nombre as product_name 
+      `SELECT c.*, p.nombre as product_name,
+        (SELECT cp2.user_name 
+         FROM chat_participants cp2 
+         WHERE cp2.chat_id = c.id AND cp2.user_id != $1 
+         LIMIT 1) as other_user_name
        FROM chats c 
        JOIN chat_participants cp ON c.id = cp.chat_id 
        LEFT JOIN products p ON c.product_id = p.id

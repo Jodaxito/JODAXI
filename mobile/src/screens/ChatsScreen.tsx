@@ -54,7 +54,7 @@ export const ChatsScreen = ({ navigation }: Props) => {
             setChats(response.data.map((c: any) => ({
                 id: c.id,
                 userId: c.user_id,
-                userName: c.user_name,
+                userName: c.other_user_name || c.user_name || 'Usuario',
                 userUsername: c.user_username || 'usuario',
                 lastMessage: c.last_message || '',
                 timestamp: c.last_message_time || c.created_at,
@@ -121,7 +121,7 @@ export const ChatsScreen = ({ navigation }: Props) => {
                 
                 {item.productName && (
                     <Text style={styles.productName} numberOfLines={1}>
-                        Re: {item.productName}
+                        {item.productName}
                     </Text>
                 )}
                 
