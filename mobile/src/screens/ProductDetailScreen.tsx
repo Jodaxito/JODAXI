@@ -222,9 +222,15 @@ export const ProductDetailScreen = ({ route, navigation }: Props) => {
             </ScrollView>
 
             <View style={styles.bottomContainer}>
-                <TouchableOpacity style={styles.contactButton} onPress={handleContact}>
-                    <Text style={styles.contactButtonText}>Contactar</Text>
-                </TouchableOpacity>
+                {product.user_id === user?.id ? (
+                    <View style={styles.myProductBanner}>
+                        <Text style={styles.myProductBannerText}>Esta es tu publicación</Text>
+                    </View>
+                ) : (
+                    <TouchableOpacity style={styles.contactButton} onPress={handleContact}>
+                        <Text style={styles.contactButtonText}>Contactar</Text>
+                    </TouchableOpacity>
+                )}
             </View>
         </SafeAreaView>
     );
@@ -317,6 +323,18 @@ const styles = StyleSheet.create({
     contactButtonText: {
         color: colors.white,
         fontSize: 18,
+        fontWeight: 'bold',
+    },
+    myProductBanner: {
+        backgroundColor: colors.primary,
+        borderRadius: 8,
+        height: 50,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    myProductBannerText: {
+        color: colors.white,
+        fontSize: 16,
         fontWeight: 'bold',
     },
 });

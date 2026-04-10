@@ -60,15 +60,19 @@ export const ChatDetailScreen = ({ route, navigation }: Props) => {
 
     const loadMessages = async () => {
         try {
+            console.log('Loading messages for chat:', chatId);
             const response = await chatAPI.getMessages(chatId);
-            setMessages(response.data.map((m: any) => ({
+            console.log('Messages response:', response.data);
+            const mappedMessages = response.data.map((m: any) => ({
                 id: m.id,
                 chatId: m.chat_id,
-                senderId: m.sender_id,
+                senderId: Number(m.sender_id),
                 text: m.text,
                 timestamp: m.timestamp,
                 isRead: m.is_read
-            })));
+            }));
+            console.log('Mapped messages:', mappedMessages);
+            setMessages(mappedMessages);
         } catch (error) {
             console.error('Error loading messages:', error);
         }

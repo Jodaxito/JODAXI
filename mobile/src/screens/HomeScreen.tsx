@@ -19,6 +19,7 @@ import { Producto } from '../interfaces/ProductoInterface';
 import { productAPI } from '../api/productAPI';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
+import { useAuth } from '../context/AuthContext';
 
 type Props = StackScreenProps<HomeStackParamList, 'Home'>;
 
@@ -29,6 +30,7 @@ const TRANSACTION_TYPES = {
 };
 
 export const HomeScreen = ({ navigation }: Props) => {
+    const { user } = useAuth();
     const [products, setProducts] = useState<Producto[]>([]);
     const [favorites, setFavorites] = useState<number[]>([]);
     const [refreshing, setRefreshing] = useState(false);
@@ -98,6 +100,7 @@ export const HomeScreen = ({ navigation }: Props) => {
     const renderProductCard = ({ item }: { item: Producto }) => {
         const typeInfo = TRANSACTION_TYPES[item.tipo_transaccion as keyof typeof TRANSACTION_TYPES] || TRANSACTION_TYPES.venta;
         const isFavorite = favorites.includes(item.id);
+        const isMyProduct = item.user_id === user?.id;
 
         return (
             <View style={styles.productCard}>
@@ -115,6 +118,11 @@ export const HomeScreen = ({ navigation }: Props) => {
                                 {typeInfo.label}
                             </Text>
                         </View>
+                        {isMyProduct && (
+                            <View style={styles.myProductBadge}>
+                                <Text style={styles.myProductText}>Mi publicación</Text>
+                            </View>
+                        )}
                         <TouchableOpacity
                             style={styles.favoriteButton}
                             onPress={() => toggleFavorite(item.id)}
@@ -238,6 +246,20 @@ const styles = StyleSheet.create({
     typeText: {
         fontSize: 12,
         fontWeight: '600',
+    },
+    myProductBadge: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        backgroundColor: colors.primary,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 4,
+    },
+    myProductText: {
+        fontSize: 10,
+        fontWeight: '600',
+        color: colors.white,
     },
     favoriteButton: {
         position: 'absolute',
