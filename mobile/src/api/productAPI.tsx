@@ -189,6 +189,13 @@ export const chatAPI = {
     },
 };
 
+// Admin API
+export const adminAPI = {
+    getActivity: async () => {
+        return fetchAPI('/api/admin/activity');
+    },
+};
+
 // Category API
 export const categoryAPI = {
     getAll: async () => {

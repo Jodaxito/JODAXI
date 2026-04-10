@@ -451,6 +451,61 @@ app.post('/api/chats/:chatId/messages', async (req, res) => {
   }
 });
 
+// GET /api/admin/activity - Estadísticas de actividad con Laplace
+app.get('/api/admin/activity', async (req, res) => {
+  try {
+    // Obtener productos por día (últimos 30 días)
+    const productsResult = await pool.query(
+      `SELECT DATE(created_at) as date, COUNT(*) as count 
+       FROM products 
+       WHERE created_at >= NOW() - INTERVAL '30 days'
+       GROUP BY DATE(created_at) 
+       ORDER BY date`
+    );
+    
+    // Obtener chats por día (últimos 30 días)
+    const chatsResult = await pool.query(
+      `SELECT DATE(created_at) as date, COUNT(*) as count 
+       FROM chats 
+       WHERE created_at >= NOW() - INTERVAL '30 days'
+       GROUP BY DATE(created_at) 
+       ORDER BY date`
+    );
+    
+    // Obtener mensajes por día (últimos 30 días)
+    const messagesResult = await pool.query(
+      `SELECT DATE(created_at) as date, COUNT(*) as count 
+       FROM messages 
+       WHERE created_at >= NOW() - INTERVAL '30 days'
+       GROUP BY DATE(created_at) 
+       ORDER BY date`
+    );
+    
+    // Calcular totales
+    const totalProducts = await pool.query('SELECT COUNT(*) FROM products');
+    const totalChats = await pool.query('SELECT COUNT(*) FROM chats');
+    const totalMessages = await pool.query('SELECT COUNT(*) FROM messages');
+    const totalUsers = await pool.query('SELECT COUNT(*) FROM users');
+    
+    res.json({
+      daily: {
+        products: productsResult.rows,
+        chats: chatsResult.rows,
+        messages: messagesResult.rows
+      },
+      totals: {
+        products: parseInt(totalProducts.rows[0].count),
+        chats: parseInt(totalChats.rows[0].count),
+        messages: parseInt(totalMessages.rows[0].count),
+        users: parseInt(totalUsers.rows[0].count)
+      }
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Error en el servidor' });
+  }
+});
+
 // DELETE /api/chats/:chatId - Eliminar chat
 app.delete('/api/chats/:chatId', async (req, res) => {
   try {

@@ -18,7 +18,7 @@ import { StackScreenProps } from '@react-navigation/stack';
 import { ProfileStackParamList } from '../navigator/BottomTabNavigator';
 import { colors } from '../themes/appTheme';
 import { useAuth } from '../context/AuthContext';
-import { productAPI } from '../api/api';
+import { productAPI, adminAPI } from '../api/productAPI';
 
 const { width } = Dimensions.get('window');
 
@@ -58,36 +58,136 @@ interface Notificacion {
     timestamp: string;
 }
 
-// Transformada de Laplace simplificada para estadísticas
-const calculateDailyStats = (transactions: any[]) => {
-    const dailyData: { [key: string]: number } = {};
+// Transformada de Laplace para análisis de sistemas dinámicos de actividad
+// Modelo: Sistema de primer orden con constante de tiempo tau
+// L{decaimiento exponencial} = 1/(s + a) donde a = 1/tau
+// L{crecimiento exponencial} = 1/(s - a)
+
+interface ActivityData {
+    daily: {
+        products: { date: string; count: number }[];
+        chats: { date: string; count: number }[];
+        messages: { date: string; count: number }[];
+    };
+    totals: {
+        products: number;
+        chats: number;
+        messages: number;
+        users: number;
+    };
+}
+
+const calculateLaplaceStats = (activityData: ActivityData) => {
+    // Combinar todas las actividades (productos + chats + mensajes)
+    const allActivities = [
+        ...(activityData.daily?.products || []),
+        ...(activityData.daily?.chats || []),
+        ...(activityData.daily?.messages || [])
+    ];
     
-    transactions.forEach(t => {
-        const date = new Date(t.created_at).toISOString().split('T')[0];
-        dailyData[date] = (dailyData[date] || 0) + 1;
+    // Agrupar por fecha
+    const dailyData: { [key: string]: number } = {};
+    allActivities.forEach(item => {
+        const date = item.date;
+        dailyData[date] = (dailyData[date] || 0) + item.count;
     });
     
-    // Aplicar transformada de Laplace simplificada (acumulación exponencial)
     const dates = Object.keys(dailyData).sort();
+    if (dates.length === 0) {
+        return {
+            total: 0,
+            daily: [],
+            average: 0,
+            trend: 0,
+            tau: 0,
+            stability: 'estable',
+            prediction: 0,
+            growthRate: 0
+        };
+    }
+    
+    // Calcular tasa de crecimiento/decaimiento (modelo exponencial)
+    // f(t) = A * e^(kt) donde k es la tasa
+    // L{f(t)} = A/(s - k) para crecimiento, A/(s + |k|) para decaimiento
+    
+    const counts = dates.map(d => dailyData[d]);
+    const totalCount = counts.reduce((a, b) => a + b, 0);
+    const average = totalCount / dates.length;
+    
+    // Calcular tasa de crecimiento usando regresión logarítmica
+    // ln(f(t)) = ln(A) + kt -> lineal en el tiempo
+    let sumT = 0, sumLnF = 0, sumT2 = 0, sumTLnF = 0;
+    let n = 0;
+    
+    counts.forEach((count, index) => {
+        if (count > 0) {
+            const t = index;
+            const lnF = Math.log(count);
+            sumT += t;
+            sumLnF += lnF;
+            sumT2 += t * t;
+            sumTLnF += t * lnF;
+            n++;
+        }
+    });
+    
+    // Pendiente k = (n*sum(T*lnF) - sumT*sumLnF) / (n*sumT2 - sumT^2)
+    const growthRate = n > 1 ? 
+        (n * sumTLnF - sumT * sumLnF) / (n * sumT2 - sumT * sumT) : 0;
+    
+    // Constante de tiempo tau para sistema de primer orden
+    // Si k > 0 (crecimiento): tau representa tiempo para duplicar
+    // Si k < 0 (decaimiento): tau = -1/k representa tiempo de vida media
+    const tau = growthRate !== 0 ? Math.abs(1 / growthRate) : Infinity;
+    
+    // Determinar estabilidad del sistema
+    // k ≈ 0: estable, k > 0: crecimiento inestable, k < 0: decaimiento
+    let stability = 'estable';
+    if (growthRate > 0.05) stability = 'crecimiento acelerado';
+    else if (growthRate > 0.01) stability = 'crecimiento moderado';
+    else if (growthRate < -0.05) stability = 'decaimiento rápido';
+    else if (growthRate < -0.01) stability = 'decaimiento lento';
+    
+    // Predicción para el siguiente día usando transformada inversa
+    // f(t+1) ≈ f(t) * e^k (modelo exponencial)
+    const lastCount = counts[counts.length - 1] || average;
+    const prediction = lastCount * Math.exp(growthRate);
+    
+    // Aplicar factor de ponderación de Laplace (decaimiento exponencial ponderado)
+    // Cada día tiene peso e^(-t/tau) en el pasado
     const stats = dates.map((date, index) => {
         const count = dailyData[date];
-        // Función de decaimiento exponencial (simplificación de Laplace)
-        const decayFactor = Math.exp(-0.1 * (dates.length - index - 1));
-        const weightedValue = count * decayFactor;
+        const t = dates.length - index - 1; // tiempo hacia atrás
+        
+        // Factor de Laplace: peso decreciente para datos antiguos
+        // w(t) = e^(-t/tau) si tau es finito, si no w(t) = 1
+        const laplaceWeight = tau !== Infinity ? Math.exp(-t / tau) : 1;
+        const weightedValue = count * laplaceWeight;
+        
+        // Tendencia local (delta respecto al día anterior)
+        const trend = index > 0 ? count - dailyData[dates[index - 1]] : 0;
         
         return {
             date,
             count,
             weightedValue: Math.round(weightedValue * 100) / 100,
-            trend: index > 0 ? count - dailyData[dates[index - 1]] : 0
+            trend,
+            laplaceWeight: Math.round(laplaceWeight * 100) / 100
         };
     });
     
+    // Calcular tendencia global
+    const trend = counts.length > 1 ? counts[counts.length - 1] - counts[0] : 0;
+    
     return {
-        total: transactions.length,
+        total: totalCount,
         daily: stats,
-        average: transactions.length / (dates.length || 1),
-        trend: stats.length > 1 ? stats[stats.length - 1].count - stats[0].count : 0
+        average: Math.round(average * 100) / 100,
+        trend,
+        tau: tau !== Infinity ? Math.round(tau * 10) / 10 : 0,
+        stability,
+        prediction: Math.round(prediction * 100) / 100,
+        growthRate: Math.round(growthRate * 1000) / 1000
     };
 };
 
@@ -135,9 +235,13 @@ export const AdminDashboardScreen = ({ navigation }: Props) => {
             }));
             setUsers(usersData);
 
-            // Calcular estadísticas
-            const dailyStats = calculateDailyStats(apiProducts);
-            setStats(dailyStats);
+            // Cargar estadísticas de actividad del backend
+            const activityRes = await adminAPI.getActivity();
+            const activityData = activityRes.data || activityRes;
+            
+            // Calcular estadísticas con transformada de Laplace
+            const laplaceStats = calculateLaplaceStats(activityData);
+            setStats(laplaceStats);
         } catch (error) {
             console.error('Error cargando datos:', error);
             Alert.alert('Error', 'No se pudieron cargar los datos del servidor');
@@ -237,12 +341,38 @@ export const AdminDashboardScreen = ({ navigation }: Props) => {
 
     const renderStats = () => (
         <ScrollView style={styles.statsContainer}>
+            {/* Análisis de Laplace - Sistema Dinámico */}
+            <View style={styles.statsCard}>
+                <Text style={styles.statsTitle}>Análisis de Laplace - Sistema Dinámico</Text>
+                <Text style={styles.statsSubtitle}>
+                    Modelo: f(t) = A·e^(kt) | L = A/(s-k)
+                </Text>
+                <View style={styles.laplaceGrid}>
+                    <View style={styles.laplaceBox}>
+                        <Text style={styles.laplaceValue}>{stats?.growthRate || 0}</Text>
+                        <Text style={styles.laplaceLabel}>Tasa k (1/día)</Text>
+                    </View>
+                    <View style={styles.laplaceBox}>
+                        <Text style={styles.laplaceValue}>{stats?.tau || 0}d</Text>
+                        <Text style={styles.laplaceLabel}>τ (Constante tiempo)</Text>
+                    </View>
+                    <View style={[styles.laplaceBox, { backgroundColor: stats?.growthRate > 0 ? '#d1fae5' : stats?.growthRate < 0 ? '#fee2e2' : '#f3f4f6' }]}>
+                        <Text style={[styles.laplaceValue, { fontSize: 12 }]}>{stats?.stability || 'estable'}</Text>
+                        <Text style={styles.laplaceLabel}>Estado del sistema</Text>
+                    </View>
+                    <View style={styles.laplaceBox}>
+                        <Text style={styles.laplaceValue}>{stats?.prediction || 0}</Text>
+                        <Text style={styles.laplaceLabel}>Predicción mañana</Text>
+                    </View>
+                </View>
+            </View>
+
             <View style={styles.statsCard}>
                 <Text style={styles.statsTitle}>Resumen General</Text>
                 <View style={styles.statsGrid}>
                     <View style={styles.statBox}>
                         <Text style={styles.statNumber}>{stats?.total || 0}</Text>
-                        <Text style={styles.statLabel}>Total Productos</Text>
+                        <Text style={styles.statLabel}>Total Interacciones</Text>
                     </View>
                     <View style={styles.statBox}>
                         <Text style={styles.statNumber}>{users.length}</Text>
@@ -263,10 +393,94 @@ export const AdminDashboardScreen = ({ navigation }: Props) => {
                 </View>
             </View>
 
+            {/* Gráfico de actividad */}
             <View style={styles.statsCard}>
-                <Text style={styles.statsTitle}>Transacciones Diarias (Laplace)</Text>
+                <Text style={styles.statsTitle}>Gráfico de Actividad (Laplace)</Text>
                 <Text style={styles.statsSubtitle}>
-                    Decaimiento exponencial aplicado para análisis de tendencia
+                    Evolución temporal de interacciones en la plataforma
+                </Text>
+                <View style={styles.chartContainer}>
+                    {/* Eje Y */}
+                    <View style={styles.yAxis}>
+                        {[250, 200, 150, 100, 50, 0].map((val, i) => (
+                            <Text key={i} style={styles.yAxisLabel}>{val}</Text>
+                        ))}
+                    </View>
+                    
+                    {/* Área del gráfico */}
+                    <View style={styles.chartArea}>
+                        {/* Líneas horizontales de referencia */}
+                        {[0, 1, 2, 3, 4, 5].map(i => (
+                            <View key={i} style={[styles.gridLine, { bottom: i * 50 }]} />
+                        ))}
+                        
+                        {/* Línea de datos */}
+                        <View style={styles.lineChart}>
+                            {stats?.daily?.map((day: any, index: number, arr: any[]) => {
+                                if (index === 0) return null;
+                                const prevDay = arr[index - 1];
+                                const maxVal = 250;
+                                const y1 = (prevDay.count / maxVal) * 250;
+                                const y2 = (day.count / maxVal) * 250;
+                                const x1 = ((index - 1) / (arr.length - 1)) * 100;
+                                const x2 = (index / (arr.length - 1)) * 100;
+                                
+                                const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+                                const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+                                
+                                return (
+                                    <View
+                                        key={index}
+                                        style={[
+                                            styles.lineSegment,
+                                            {
+                                                left: `${x1}%`,
+                                                bottom: y1,
+                                                width: length,
+                                                transform: [{ rotate: `${-angle}deg` }],
+                                            }
+                                        ]}
+                                    />
+                                );
+                            })}
+                            
+                            {/* Puntos de datos */}
+                            {stats?.daily?.map((day: any, index: number, arr: any[]) => {
+                                const maxVal = 250;
+                                const y = (day.count / maxVal) * 250;
+                                const x = (index / (arr.length - 1 || 1)) * 100;
+                                
+                                return (
+                                    <View
+                                        key={`point-${index}`}
+                                        style={[
+                                            styles.dataPoint,
+                                            {
+                                                left: `${x}%`,
+                                                bottom: y - 4,
+                                            }
+                                        ]}
+                                    />
+                                );
+                            })}
+                        </View>
+                        
+                        {/* Eje X - fechas */}
+                        <View style={styles.xAxis}>
+                            {stats?.daily?.slice(0, 7).map((day: any, index: number) => (
+                                <Text key={index} style={styles.xAxisLabel}>
+                                    {day.date.slice(5)}
+                                </Text>
+                            ))}
+                        </View>
+                    </View>
+                </View>
+            </View>
+
+            <View style={styles.statsCard}>
+                <Text style={styles.statsTitle}>Actividad Diaria con Ponderación Laplace</Text>
+                <Text style={styles.statsSubtitle}>
+                    w(t) = e^(-t/τ) - Factor de decaimiento exponencial
                 </Text>
                 {stats?.daily?.map((day: any, index: number) => (
                     <View key={index} style={styles.dayRow}>
@@ -417,7 +631,12 @@ export const AdminDashboardScreen = ({ navigation }: Props) => {
             </Modal>
 
             {/* Modal de confirmación para eliminar producto */}
-            {deleteModalVisible && (
+            <Modal
+                animationType="fade"
+                transparent={true}
+                visible={deleteModalVisible}
+                onRequestClose={cancelDeleteProduct}
+            >
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>Eliminar producto</Text>
@@ -434,7 +653,7 @@ export const AdminDashboardScreen = ({ navigation }: Props) => {
                         </View>
                     </View>
                 </View>
-            )}
+            </Modal>
         </View>
     );
 };
@@ -464,7 +683,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingBottom: 10,
         borderBottomWidth: 1,
-        borderBottomColor: colors.lightGray,
+        borderBottomColor: '#e5e7eb',
     },
     tab: {
         flex: 1,
@@ -474,7 +693,7 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         marginHorizontal: 5,
         borderRadius: 25,
-        backgroundColor: colors.lightBackground,
+        backgroundColor: '#f3f4f6',
     },
     tabActive: {
         backgroundColor: colors.primary,
@@ -515,7 +734,7 @@ const styles = StyleSheet.create({
     productName: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: colors.darkText,
+        color: '#111827',
     },
     productUser: {
         fontSize: 14,
@@ -524,11 +743,11 @@ const styles = StyleSheet.create({
     },
     productDate: {
         fontSize: 12,
-        color: colors.lightGray,
+        color: '#9ca3af',
         marginTop: 4,
     },
     productBadge: {
-        backgroundColor: colors.lightBackground,
+        backgroundColor: '#f3f4f6',
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 4,
@@ -567,7 +786,7 @@ const styles = StyleSheet.create({
     userName: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: colors.darkText,
+        color: '#111827',
     },
     userEmail: {
         fontSize: 14,
@@ -599,7 +818,7 @@ const styles = StyleSheet.create({
     statsTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: colors.darkText,
+        color: '#111827',
         marginBottom: 15,
     },
     statsSubtitle: {
@@ -612,9 +831,33 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
         justifyContent: 'space-between',
     },
+    laplaceGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+    },
+    laplaceBox: {
+        width: (width - 70) / 2,
+        backgroundColor: '#f3f4f6',
+        borderRadius: 8,
+        padding: 15,
+        marginBottom: 10,
+        alignItems: 'center',
+    },
+    laplaceValue: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: colors.primary,
+    },
+    laplaceLabel: {
+        fontSize: 12,
+        color: colors.gray,
+        marginTop: 4,
+        textAlign: 'center',
+    },
     statBox: {
         width: (width - 70) / 2,
-        backgroundColor: colors.lightBackground,
+        backgroundColor: '#f3f4f6',
         borderRadius: 8,
         padding: 15,
         marginBottom: 10,
@@ -635,7 +878,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 8,
         borderBottomWidth: 1,
-        borderBottomColor: colors.lightGray,
+        borderBottomColor: '#e5e7eb',
     },
     dayDate: {
         width: 100,
@@ -645,7 +888,7 @@ const styles = StyleSheet.create({
     dayBar: {
         flex: 1,
         height: 8,
-        backgroundColor: colors.lightGray,
+        backgroundColor: '#e5e7eb',
         borderRadius: 4,
         marginHorizontal: 10,
     },
@@ -658,7 +901,7 @@ const styles = StyleSheet.create({
         width: 30,
         fontSize: 12,
         fontWeight: 'bold',
-        color: colors.darkText,
+        color: '#111827',
         textAlign: 'right',
     },
     dayWeight: {
@@ -666,6 +909,70 @@ const styles = StyleSheet.create({
         fontSize: 10,
         color: colors.gray,
         textAlign: 'right',
+    },
+    chartContainer: {
+        flexDirection: 'row',
+        height: 280,
+        marginTop: 10,
+    },
+    yAxis: {
+        width: 40,
+        height: 250,
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
+        paddingRight: 5,
+    },
+    yAxisLabel: {
+        fontSize: 10,
+        color: colors.gray,
+    },
+    chartArea: {
+        flex: 1,
+        height: 250,
+        position: 'relative',
+    },
+    gridLine: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        height: 1,
+        backgroundColor: '#e5e7eb',
+    },
+    lineChart: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: 0,
+        bottom: 30,
+    },
+    lineSegment: {
+        position: 'absolute',
+        height: 2,
+        backgroundColor: colors.primary,
+        transformOrigin: 'left',
+    },
+    dataPoint: {
+        position: 'absolute',
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: colors.primary,
+        borderWidth: 2,
+        borderColor: colors.white,
+    },
+    xAxis: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 30,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
+    },
+    xAxisLabel: {
+        fontSize: 10,
+        color: colors.gray,
     },
     modalOverlay: {
         flex: 1,
@@ -684,7 +991,7 @@ const styles = StyleSheet.create({
     modalTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: colors.darkText,
+        color: '#111827',
         marginBottom: 15,
     },
     modalInput: {
@@ -693,7 +1000,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         padding: 12,
         fontSize: 14,
-        color: colors.darkText,
+        color: '#111827',
         textAlignVertical: 'top',
         minHeight: 100,
         marginBottom: 20,
@@ -709,7 +1016,7 @@ const styles = StyleSheet.create({
         marginLeft: 10,
     },
     modalButtonCancel: {
-        backgroundColor: colors.lightGray,
+        backgroundColor: '#e5e7eb',
     },
     modalButtonSend: {
         backgroundColor: colors.primary,
@@ -717,7 +1024,7 @@ const styles = StyleSheet.create({
     modalButtonText: {
         fontSize: 14,
         fontWeight: '600',
-        color: colors.darkText,
+        color: '#111827',
     },
     errorText: {
         fontSize: 18,
