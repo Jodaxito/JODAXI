@@ -451,6 +451,27 @@ app.post('/api/chats/:chatId/messages', async (req, res) => {
   }
 });
 
+// DELETE /api/chats/:chatId - Eliminar chat
+app.delete('/api/chats/:chatId', async (req, res) => {
+  try {
+    const chatId = req.params.chatId;
+    
+    // Eliminar mensajes del chat primero
+    await pool.query('DELETE FROM messages WHERE chat_id = $1', [chatId]);
+    
+    // Eliminar participantes del chat
+    await pool.query('DELETE FROM chat_participants WHERE chat_id = $1', [chatId]);
+    
+    // Eliminar el chat
+    await pool.query('DELETE FROM chats WHERE id = $1', [chatId]);
+    
+    res.json({ message: 'Chat eliminado correctamente' });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Error en el servidor' });
+  }
+});
+
 // Ruta de prueba API
 app.get('/api', (req, res) => {
   res.json({ message: 'API JODAXI funcionando', status: 'OK' });

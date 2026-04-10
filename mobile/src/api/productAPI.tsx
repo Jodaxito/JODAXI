@@ -181,6 +181,12 @@ export const chatAPI = {
             body: JSON.stringify(data),
         });
     },
+    
+    deleteChat: async (chatId: number) => {
+        return fetchAPI(`/api/chats/${chatId}`, {
+            method: 'DELETE',
+        });
+    },
 };
 
 // Category API

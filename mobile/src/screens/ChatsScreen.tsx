@@ -10,6 +10,7 @@ import {
     RefreshControl,
     ActivityIndicator,
     ScrollView,
+    Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StackScreenProps } from '@react-navigation/stack';
@@ -38,6 +39,8 @@ export const ChatsScreen = ({ navigation }: Props) => {
     const [chats, setChats] = useState<Chat[]>([]);
     const [refreshing, setRefreshing] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+    const [chatToDelete, setChatToDelete] = useState<number | null>(null);
 
     useEffect(() => {
         loadChats();
@@ -73,6 +76,28 @@ export const ChatsScreen = ({ navigation }: Props) => {
         setRefreshing(true);
         await loadChats();
         setRefreshing(false);
+    };
+
+    const handleDeleteChat = (chatId: number) => {
+        setChatToDelete(chatId);
+        setDeleteModalVisible(true);
+    };
+
+    const confirmDeleteChat = async () => {
+        if (!chatToDelete) return;
+        try {
+            await chatAPI.deleteChat(chatToDelete);
+            setDeleteModalVisible(false);
+            setChatToDelete(null);
+            loadChats();
+        } catch (error) {
+            Alert.alert('Error', 'No se pudo eliminar el chat');
+        }
+    };
+
+    const cancelDeleteChat = () => {
+        setDeleteModalVisible(false);
+        setChatToDelete(null);
     };
 
     const formatTime = (timestamp: string) => {
@@ -133,7 +158,12 @@ export const ChatsScreen = ({ navigation }: Props) => {
                 </Text>
             </View>
             
-            <Ionicons name="chevron-forward" size={20} color={colors.gray} />
+            <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => handleDeleteChat(item.id)}
+            >
+                <Ionicons name="trash-outline" size={20} color={colors.error} />
+            </TouchableOpacity>
         </TouchableOpacity>
     );
 
@@ -196,7 +226,28 @@ export const ChatsScreen = ({ navigation }: Props) => {
                             </Text>
                         </View>
                     }
+                    ListEmptyComponent={renderEmptyState}
                 />
+            )}
+
+            {/* Modal de confirmación para eliminar chat */}
+            {deleteModalVisible && (
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Eliminar chat</Text>
+                        <Text style={styles.modalText}>
+                            ¿Estás seguro de que quieres eliminar esta conversación?
+                        </Text>
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity style={styles.modalCancelButton} onPress={cancelDeleteChat}>
+                                <Text style={styles.modalCancelText}>Cancelar</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.modalDeleteButton} onPress={confirmDeleteChat}>
+                                <Text style={styles.modalDeleteText}>Eliminar</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
             )}
         </SafeAreaView>
     );
@@ -363,6 +414,65 @@ const styles = StyleSheet.create({
         color: colors.white,
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    deleteButton: {
+        justifyContent: 'center',
+        paddingHorizontal: 8,
+    },
+    modalOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+    },
+    modalContent: {
+        backgroundColor: colors.white,
+        borderRadius: 12,
+        padding: 24,
+        width: '80%',
+        maxWidth: 320,
+        alignItems: 'center',
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#374151',
+        marginBottom: 12,
+    },
+    modalText: {
+        fontSize: 14,
+        color: colors.gray,
+        textAlign: 'center',
+        marginBottom: 24,
+    },
+    modalButtons: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    modalCancelButton: {
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 8,
+        backgroundColor: '#e5e7eb',
+    },
+    modalCancelText: {
+        color: '#374151',
+        fontWeight: '600',
+    },
+    modalDeleteButton: {
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 8,
+        backgroundColor: '#ef4444',
+    },
+    modalDeleteText: {
+        color: colors.white,
+        fontWeight: '600',
     },
 });
 
