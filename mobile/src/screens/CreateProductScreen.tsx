@@ -16,6 +16,7 @@ import { StackScreenProps } from '@react-navigation/stack';
 import { HomeStackParamList } from '../navigator/BottomTabNavigator';
 import { colors } from '../themes/appTheme';
 import { productAPI } from '../api/productAPI';
+import { useAuth } from '../context/AuthContext';
 import * as ImagePicker from 'expo-image-picker';
 
 type Props = StackScreenProps<HomeStackParamList, 'CreateProduct'>;
@@ -44,9 +45,10 @@ export const CreateProductScreen = ({ navigation }: Props) => {
     const [price, setPrice] = useState('');
     const [selectedType, setSelectedType] = useState('venta');
     const [selectedCategory, setSelectedCategory] = useState('Otros');
-    const [selectedCondition, setSelectedCondition] = useState('Buen estado');
+    const [selectedCondition, setSelectedCondition] = useState('Nuevo');
     const [image, setImage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const { user } = useAuth();
 
     const pickImage = async () => {
         const result = await ImagePicker.launchImageLibraryAsync({
@@ -77,6 +79,9 @@ export const CreateProductScreen = ({ navigation }: Props) => {
                 categoria: selectedCategory,
                 tipo_transaccion: selectedType,
                 imagen: image,
+                user_id: user?.id,
+                user_name: user?.name,
+                user_email: user?.email,
             };
 
             await productAPI.create(productData);

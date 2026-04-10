@@ -260,7 +260,14 @@ app.get('/api/auth/me', async (req, res) => {
 // GET /api/products - Obtener todos los productos
 app.get('/api/products', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM products ORDER BY created_at DESC');
+    const result = await pool.query(`
+      SELECT id, nombre, descripcion, precio, estado, tipo_transaccion, 
+             imagen, categoria, user_id, user_name, user_email, 
+             created_at, updated_at
+      FROM products 
+      ORDER BY created_at DESC
+    `);
+    console.log('Productos devueltos:', result.rows.length, '- user_ids:', result.rows.map(p => p.user_id));
     res.json({ data: result.rows });
   } catch (error) {
     console.error('Error:', error);

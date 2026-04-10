@@ -215,8 +215,8 @@ export const ProductDetailScreen = ({ route, navigation }: Props) => {
 
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Vendedor</Text>
-                        <Text style={styles.sellerName}>{product.user?.name}</Text>
-                        <Text style={styles.sellerEmail}>{product.user?.email}</Text>
+                        <Text style={styles.sellerName}>{product.user_name || 'Usuario'}</Text>
+                        <Text style={styles.sellerEmail}>{product.user_email}</Text>
                     </View>
                 </View>
             </ScrollView>

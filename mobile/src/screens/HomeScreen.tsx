@@ -147,6 +147,9 @@ export const HomeScreen = ({ navigation }: Props) => {
                                     : `$${item.precio}`}
                         </Text>
                         <Text style={styles.productCondition}>{item.estado}</Text>
+                        {!isMyProduct && (
+                            <Text style={styles.sellerName}>@{item.user_name || 'usuario'}</Text>
+                        )}
                     </View>
                 </TouchableOpacity>
             </View>
@@ -287,6 +290,12 @@ const styles = StyleSheet.create({
     productCondition: {
         fontSize: 12,
         color: colors.gray,
+    },
+    sellerName: {
+        fontSize: 12,
+        color: colors.primary,
+        marginTop: 4,
+        fontWeight: '500',
     },
     emptyContainer: {
         alignItems: 'center',
