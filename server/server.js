@@ -545,24 +545,36 @@ app.get('/api/debug', (req, res) => {
 // Endpoint para seed de datos (solo para desarrollo/pruebas)
 app.post('/api/seed', async (req, res) => {
   try {
+    // Primero verificar el esquema de la tabla
+    const schemaResult = await req.db.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'products'
+    `);
+    const columns = schemaResult.rows.map(r => r.column_name);
+    console.log('Columnas en tabla products:', columns);
+    
+    // Determinar el nombre correcto de la columna de título
+    const titleColumn = columns.includes('title') ? 'title' : 
+                       columns.includes('name') ? 'name' : 'title';
+    
     const seedSQL = `
-      -- Insertar productos con fechas distribuidas (últimos 7 días)
-      INSERT INTO products (name, description, price, image_url, user_id, user_name, created_at) VALUES
-      ('Laptop HP', 'Laptop en buen estado', 8500, 'https://via.placeholder.com/150', 1, 'Admin', NOW()),
-      ('iPhone 12', 'Celular usado', 12000, 'https://via.placeholder.com/150', 1, 'Admin', NOW() - INTERVAL '1 day'),
-      ('Audífonos Sony', 'Inalámbricos', 2500, 'https://via.placeholder.com/150', 2, 'Usuario1', NOW() - INTERVAL '1 day'),
-      ('Mouse Logitech', 'Gamer', 800, 'https://via.placeholder.com/150', 2, 'Usuario1', NOW() - INTERVAL '2 days'),
-      ('Teclado mecánico', 'RGB', 1500, 'https://via.placeholder.com/150', 1, 'Admin', NOW() - INTERVAL '2 days'),
-      ('Monitor 24\"', 'Full HD', 4500, 'https://via.placeholder.com/150', 3, 'Usuario2', NOW() - INTERVAL '3 days'),
-      ('Cámara Canon', 'Fotografía', 15000, 'https://via.placeholder.com/150', 3, 'Usuario2', NOW() - INTERVAL '3 days'),
-      ('Tablet Samsung', 'Para dibujo', 6000, 'https://via.placeholder.com/150', 2, 'Usuario1', NOW() - INTERVAL '4 days'),
-      ('Smartwatch', 'Fitness', 3000, 'https://via.placeholder.com/150', 1, 'Admin', NOW() - INTERVAL '4 days'),
-      ('Router WiFi', 'Dual band', 1200, 'https://via.placeholder.com/150', 3, 'Usuario2', NOW() - INTERVAL '5 days'),
-      ('Disco duro 1TB', 'Externo', 2000, 'https://via.placeholder.com/150', 2, 'Usuario1', NOW() - INTERVAL '5 days'),
-      ('Webcam HD', 'Para streaming', 900, 'https://via.placeholder.com/150', 1, 'Admin', NOW() - INTERVAL '6 days'),
-      ('Micrófono USB', 'Condensador', 1800, 'https://via.placeholder.com/150', 3, 'Usuario2', NOW() - INTERVAL '6 days'),
-      ('Batería portátil', '20000mAh', 700, 'https://via.placeholder.com/150', 2, 'Usuario1', NOW() - INTERVAL '7 days'),
-      ('Hub USB', '7 puertos', 400, 'https://via.placeholder.com/150', 1, 'Admin', NOW() - INTERVAL '7 days');
+      INSERT INTO products (${titleColumn}, description, price, image_url, user_id, created_at) VALUES
+      ('Laptop HP', 'Laptop en buen estado', 8500, 'https://via.placeholder.com/150', 1, NOW()),
+      ('iPhone 12', 'Celular usado', 12000, 'https://via.placeholder.com/150', 1, NOW() - INTERVAL '1 day'),
+      ('Audífonos Sony', 'Inalámbricos', 2500, 'https://via.placeholder.com/150', 2, NOW() - INTERVAL '1 day'),
+      ('Mouse Logitech', 'Gamer', 800, 'https://via.placeholder.com/150', 2, NOW() - INTERVAL '2 days'),
+      ('Teclado mecánico', 'RGB', 1500, 'https://via.placeholder.com/150', 1, NOW() - INTERVAL '2 days'),
+      ('Monitor 24 pulgadas', 'Full HD', 4500, 'https://via.placeholder.com/150', 3, NOW() - INTERVAL '3 days'),
+      ('Cámara Canon', 'Fotografía', 15000, 'https://via.placeholder.com/150', 3, NOW() - INTERVAL '3 days'),
+      ('Tablet Samsung', 'Para dibujo', 6000, 'https://via.placeholder.com/150', 2, NOW() - INTERVAL '4 days'),
+      ('Smartwatch', 'Fitness', 3000, 'https://via.placeholder.com/150', 1, NOW() - INTERVAL '4 days'),
+      ('Router WiFi', 'Dual band', 1200, 'https://via.placeholder.com/150', 3, NOW() - INTERVAL '5 days'),
+      ('Disco duro 1TB', 'Externo', 2000, 'https://via.placeholder.com/150', 2, NOW() - INTERVAL '5 days'),
+      ('Webcam HD', 'Para streaming', 900, 'https://via.placeholder.com/150', 1, NOW() - INTERVAL '6 days'),
+      ('Micrófono USB', 'Condensador', 1800, 'https://via.placeholder.com/150', 3, NOW() - INTERVAL '6 days'),
+      ('Batería portátil', '20000mAh', 700, 'https://via.placeholder.com/150', 2, NOW() - INTERVAL '7 days'),
+      ('Hub USB', '7 puertos', 400, 'https://via.placeholder.com/150', 1, NOW() - INTERVAL '7 days');
     `;
     
     await req.db.query(seedSQL);
@@ -570,14 +582,15 @@ app.post('/api/seed', async (req, res) => {
     res.json({ 
       success: true, 
       message: 'Datos de prueba insertados correctamente',
-      inserted: 15
+      inserted: 15,
+      columnUsed: titleColumn
     });
   } catch (error) {
     console.error('Error seeding data:', error);
     res.status(500).json({ 
       success: false, 
       error: error.message,
-      hint: 'Los productos pueden ya existir (duplicados)' 
+      hint: 'Posible error: tabla no existe o esquema diferente'
     });
   }
 });
