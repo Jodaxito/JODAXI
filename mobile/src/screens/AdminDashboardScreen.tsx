@@ -541,7 +541,7 @@ export const AdminDashboardScreen = ({ navigation }: Props) => {
                                         />
                                         {dataPoints}
                                         {xLabels}
-                                    </g>
+                                    </G>
                                 );
                             })()}
                         </Svg>
