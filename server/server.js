@@ -591,9 +591,10 @@ app.post('/api/seed', async (req, res) => {
     await req.db.query(seedSQL);
     console.log('15 productos insertados');
     
-    // Crear tabla chats si no existe
+    // Eliminar y recrear tabla chats con esquema correcto
+    await req.db.query(`DROP TABLE IF EXISTS chats CASCADE`);
     await req.db.query(`
-      CREATE TABLE IF NOT EXISTS chats (
+      CREATE TABLE chats (
         id SERIAL PRIMARY KEY,
         product_id INTEGER,
         seller_id INTEGER,
@@ -603,9 +604,10 @@ app.post('/api/seed', async (req, res) => {
       )
     `);
     
-    // Crear tabla messages si no existe
+    // Eliminar y recrear tabla messages con esquema correcto
+    await req.db.query(`DROP TABLE IF EXISTS messages CASCADE`);
     await req.db.query(`
-      CREATE TABLE IF NOT EXISTS messages (
+      CREATE TABLE messages (
         id SERIAL PRIMARY KEY,
         chat_id INTEGER,
         sender_id INTEGER,
