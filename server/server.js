@@ -83,6 +83,14 @@ const initDB = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    
+    // Asegurar que last_message_time existe
+    try {
+      await pool.query(`ALTER TABLE chats ADD COLUMN IF NOT EXISTS last_message_time TIMESTAMP`);
+      console.log('Columna last_message_time verificada');
+    } catch (e) {
+      // Ignorar error si ya existe
+    }
 
     // Tabla de participantes de chats
     await pool.query(`
