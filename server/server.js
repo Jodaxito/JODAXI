@@ -160,6 +160,22 @@ app.get('/api/health', (req, res) => {
 
 // ============ AUTH ROUTES ============
 
+// GET /api/users - Obtener todos los usuarios (para admin)
+app.get('/api/users', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, name, email, created_at
+      FROM users 
+      ORDER BY created_at DESC
+    `);
+    console.log('Usuarios devueltos:', result.rows.length);
+    res.json({ data: result.rows });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Error en el servidor' });
+  }
+});
+
 // POST /api/auth/register - Registro
 app.post('/api/auth/register', async (req, res) => {
   try {
