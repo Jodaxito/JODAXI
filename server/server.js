@@ -121,6 +121,18 @@ const initDB = async () => {
         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    
+    // Asegurar columnas de messages existan
+    try {
+      await pool.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS chat_id INTEGER`);
+      await pool.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS sender_id BIGINT`);
+      await pool.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS text TEXT`);
+      await pool.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT false`);
+      await pool.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+      console.log('Columnas de messages verificadas');
+    } catch (e) {
+      // Ignorar errores si columnas ya existen
+    }
 
     console.log('Tablas de PostgreSQL creadas/verificadas correctamente');
     
@@ -415,8 +427,13 @@ app.get('/api/products/user/:userId', async (req, res) => {
 
 // GET /api/chats - Obtener chats del usuario
 app.get('/api/chats', async (req, res) => {
+  console.log('GET /api/chats - userId:', req.query.userId);
   try {
     const userId = req.query.userId;
+    if (!userId) {
+      console.log('Error: Falta userId');
+      return res.status(400).json({ error: 'Falta userId' });
+    }
     const result = await pool.query(
       `SELECT c.*, p.nombre as product_name,
         (SELECT cp2.user_name 
@@ -426,13 +443,14 @@ app.get('/api/chats', async (req, res) => {
        FROM chats c 
        JOIN chat_participants cp ON c.id = cp.chat_id 
        LEFT JOIN products p ON c.product_id = p.id
-       WHERE cp.user_id = $1 ORDER BY c.last_message_time DESC`,
+       WHERE cp.user_id = $1 ORDER BY c.last_message_time DESC NULLS LAST`,
       [userId]
     );
+    console.log('Chats devueltos:', result.rows.length);
     res.json({ data: result.rows });
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Error en el servidor' });
+    console.error('Error obteniendo chats:', error);
+    res.status(500).json({ error: 'Error en el servidor: ' + error.message });
   }
 });
 
