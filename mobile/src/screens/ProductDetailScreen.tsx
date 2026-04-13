@@ -144,7 +144,8 @@ export const ProductDetailScreen = ({ route, navigation }: Props) => {
             });
         } catch (error: any) {
             console.error('Error creating chat:', error);
-            Alert.alert('Error', 'No se pudo iniciar la conversación');
+            const errorMsg = error?.response?.data?.error || error?.message || 'No se pudo iniciar la conversación';
+            Alert.alert('Error', errorMsg);
         }
     };
 

@@ -457,15 +457,17 @@ app.post('/api/chats', async (req, res) => {
 
 // GET /api/chats/:chatId/messages - Obtener mensajes
 app.get('/api/chats/:chatId/messages', async (req, res) => {
+  console.log('GET /api/chats/:chatId/messages - Chat:', req.params.chatId);
   try {
     const result = await pool.query(
       `SELECT * FROM messages 
        WHERE chat_id = $1 ORDER BY timestamp ASC`,
       [req.params.chatId]
     );
+    console.log('Mensajes devueltos:', result.rows.length);
     res.json({ data: result.rows });
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error obteniendo mensajes:', error);
     res.status(500).json({ error: 'Error en el servidor' });
   }
 });
