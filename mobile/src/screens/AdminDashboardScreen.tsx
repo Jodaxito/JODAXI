@@ -13,7 +13,7 @@ import {
     RefreshControl,
     Dimensions,
 } from 'react-native';
-import Svg, { Path, Circle, Line, Text as SvgText, Rect } from 'react-native-svg';
+import Svg, { Path, Circle, Line, Text as SvgText, Rect, G } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { StackScreenProps } from '@react-navigation/stack';
 import { ProfileStackParamList } from '../navigator/BottomTabNavigator';
@@ -435,7 +435,7 @@ export const AdminDashboardScreen = ({ navigation }: Props) => {
                                     const y = paddingTop + chartHeight * (1 - ratio);
                                     const value = Math.round(minVal + range * ratio);
                                     return (
-                                        <g key={`grid-${i}`}>
+                                        <G key={`grid-${i}`}>
                                             <Line
                                                 x1={paddingLeft}
                                                 y1={y}
@@ -445,7 +445,7 @@ export const AdminDashboardScreen = ({ navigation }: Props) => {
                                                 strokeWidth="1"
                                             />
                                             <SvgText x={paddingLeft - 5} y={y + 4} fill="#666" fontSize="10" textAnchor="end">{value}</SvgText>
-                                        </g>
+                                        </G>
                                     );
                                 });
                                 
@@ -527,7 +527,7 @@ export const AdminDashboardScreen = ({ navigation }: Props) => {
                                 });
                                 
                                 return (
-                                    <g>
+                                    <G>
                                         {gridLines}
                                         {xAxis}
                                         {yAxis}
