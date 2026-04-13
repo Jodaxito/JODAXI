@@ -549,14 +549,19 @@ app.post('/api/seed', async (req, res) => {
     await req.db.query(`DROP TABLE IF EXISTS products CASCADE`);
     
     // Crear tabla con esquema correcto
-    await req.db.query(`
-      CREATE TABLE products (
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
-        title VARCHAR(255) NOT NULL,
-        description TEXT,
-        price DECIMAL(10,2) NOT NULL,
-        image_url VARCHAR(500),
+        nombre VARCHAR(255) NOT NULL,
+        descripcion TEXT NOT NULL,
+        precio INTEGER DEFAULT 0,
+        estado VARCHAR(50) DEFAULT 'usado',
+        tipo_transaccion VARCHAR(50) DEFAULT 'venta',
+        imagen VARCHAR(500),
+        categoria VARCHAR(100),
         user_id INTEGER NOT NULL,
+        user_name VARCHAR(255),
+        user_email VARCHAR(255),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -565,22 +570,22 @@ app.post('/api/seed', async (req, res) => {
     
     // Insertar productos con fechas distribuidas
     const seedSQL = `
-      INSERT INTO products (title, description, price, image_url, user_id, created_at) VALUES
-      ('Laptop HP', 'Laptop en buen estado', 8500, 'https://via.placeholder.com/150', 1, NOW()),
-      ('iPhone 12', 'Celular usado', 12000, 'https://via.placeholder.com/150', 1, NOW() - INTERVAL '1 day'),
-      ('Audífonos Sony', 'Inalámbricos', 2500, 'https://via.placeholder.com/150', 2, NOW() - INTERVAL '1 day'),
-      ('Mouse Logitech', 'Gamer', 800, 'https://via.placeholder.com/150', 2, NOW() - INTERVAL '2 days'),
-      ('Teclado mecánico', 'RGB', 1500, 'https://via.placeholder.com/150', 1, NOW() - INTERVAL '2 days'),
-      ('Monitor 24 pulgadas', 'Full HD', 4500, 'https://via.placeholder.com/150', 3, NOW() - INTERVAL '3 days'),
-      ('Cámara Canon', 'Fotografía', 15000, 'https://via.placeholder.com/150', 3, NOW() - INTERVAL '3 days'),
-      ('Tablet Samsung', 'Para dibujo', 6000, 'https://via.placeholder.com/150', 2, NOW() - INTERVAL '4 days'),
-      ('Smartwatch', 'Fitness', 3000, 'https://via.placeholder.com/150', 1, NOW() - INTERVAL '4 days'),
-      ('Router WiFi', 'Dual band', 1200, 'https://via.placeholder.com/150', 3, NOW() - INTERVAL '5 days'),
-      ('Disco duro 1TB', 'Externo', 2000, 'https://via.placeholder.com/150', 2, NOW() - INTERVAL '5 days'),
-      ('Webcam HD', 'Para streaming', 900, 'https://via.placeholder.com/150', 1, NOW() - INTERVAL '6 days'),
-      ('Micrófono USB', 'Condensador', 1800, 'https://via.placeholder.com/150', 3, NOW() - INTERVAL '6 days'),
-      ('Batería portátil', '20000mAh', 700, 'https://via.placeholder.com/150', 2, NOW() - INTERVAL '7 days'),
-      ('Hub USB', '7 puertos', 400, 'https://via.placeholder.com/150', 1, NOW() - INTERVAL '7 days')
+      INSERT INTO products (nombre, descripcion, precio, estado, tipo_transaccion, imagen, categoria, user_id, user_name, created_at) VALUES
+      ('Laptop HP', 'Laptop en buen estado', 8500, 'usado', 'venta', 'https://via.placeholder.com/150', 'Electrónica', 1, 'Admin', NOW()),
+      ('iPhone 12', 'Celular usado', 12000, 'usado', 'venta', 'https://via.placeholder.com/150', 'Celulares', 1, 'Admin', NOW() - INTERVAL '1 day'),
+      ('Audífonos Sony', 'Inalámbricos', 2500, 'nuevo', 'venta', 'https://via.placeholder.com/150', 'Audio', 2, 'Usuario1', NOW() - INTERVAL '1 day'),
+      ('Mouse Logitech', 'Gamer', 800, 'usado', 'venta', 'https://via.placeholder.com/150', 'Computadoras', 2, 'Usuario1', NOW() - INTERVAL '2 days'),
+      ('Teclado mecánico', 'RGB', 1500, 'nuevo', 'venta', 'https://via.placeholder.com/150', 'Computadoras', 1, 'Admin', NOW() - INTERVAL '2 days'),
+      ('Monitor 24 pulgadas', 'Full HD', 4500, 'usado', 'venta', 'https://via.placeholder.com/150', 'Electrónica', 3, 'Usuario2', NOW() - INTERVAL '3 days'),
+      ('Cámara Canon', 'Fotografía', 15000, 'usado', 'venta', 'https://via.placeholder.com/150', 'Cámaras', 3, 'Usuario2', NOW() - INTERVAL '3 days'),
+      ('Tablet Samsung', 'Para dibujo', 6000, 'nuevo', 'venta', 'https://via.placeholder.com/150', 'Tablets', 2, 'Usuario1', NOW() - INTERVAL '4 days'),
+      ('Smartwatch', 'Fitness', 3000, 'usado', 'venta', 'https://via.placeholder.com/150', 'Wearables', 1, 'Admin', NOW() - INTERVAL '4 days'),
+      ('Router WiFi', 'Dual band', 1200, 'nuevo', 'venta', 'https://via.placeholder.com/150', 'Redes', 3, 'Usuario2', NOW() - INTERVAL '5 days'),
+      ('Disco duro 1TB', 'Externo', 2000, 'usado', 'venta', 'https://via.placeholder.com/150', 'Almacenamiento', 2, 'Usuario1', NOW() - INTERVAL '5 days'),
+      ('Webcam HD', 'Para streaming', 900, 'nuevo', 'venta', 'https://via.placeholder.com/150', 'Video', 1, 'Admin', NOW() - INTERVAL '6 days'),
+      ('Micrófono USB', 'Condensador', 1800, 'usado', 'venta', 'https://via.placeholder.com/150', 'Audio', 3, 'Usuario2', NOW() - INTERVAL '6 days'),
+      ('Batería portátil', '20000mAh', 700, 'nuevo', 'venta', 'https://via.placeholder.com/150', 'Accesorios', 2, 'Usuario1', NOW() - INTERVAL '7 days'),
+      ('Hub USB', '7 puertos', 400, 'usado', 'venta', 'https://via.placeholder.com/150', 'Accesorios', 1, 'Admin', NOW() - INTERVAL '7 days')
     `;
     
     await req.db.query(seedSQL);
