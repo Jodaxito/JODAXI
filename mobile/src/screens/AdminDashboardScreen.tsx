@@ -475,11 +475,17 @@ export const AdminDashboardScreen = ({ navigation }: Props) => {
                         
                         {/* Eje X - fechas */}
                         <View style={styles.xAxis}>
-                            {stats?.daily?.slice(0, 7).map((day: any, index: number) => (
-                                <Text key={index} style={styles.xAxisLabel}>
-                                    {day.date.slice(5)}
-                                </Text>
-                            ))}
+                            {stats?.daily?.slice(0, 7).map((day: any, index: number) => {
+                                // Formatear fecha ISO a MM-DD
+                                const dateObj = new Date(day.date);
+                                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                                const dayNum = String(dateObj.getDate()).padStart(2, '0');
+                                return (
+                                    <Text key={index} style={styles.xAxisLabel}>
+                                        {month}-{dayNum}
+                                    </Text>
+                                );
+                            })}
                         </View>
                     </View>
                 </View>
@@ -490,9 +496,16 @@ export const AdminDashboardScreen = ({ navigation }: Props) => {
                 <Text style={styles.statsSubtitle}>
                     w(t) = e^(-t/τ) - Factor de decaimiento exponencial
                 </Text>
-                {stats?.daily?.map((day: any, index: number) => (
+                {stats?.daily?.map((day: any, index: number) => {
+                    // Formatear fecha
+                    const dateObj = new Date(day.date);
+                    const formattedDate = dateObj.toLocaleDateString('es-ES', { 
+                        month: 'short', 
+                        day: 'numeric' 
+                    });
+                    return (
                     <View key={index} style={styles.dayRow}>
-                        <Text style={styles.dayDate}>{day.date}</Text>
+                        <Text style={styles.dayDate}>{formattedDate}</Text>
                         <View style={styles.dayBar}>
                             <View 
                                 style={[
@@ -504,7 +517,8 @@ export const AdminDashboardScreen = ({ navigation }: Props) => {
                         <Text style={styles.dayCount}>{day.count}</Text>
                         <Text style={styles.dayWeight}>({day.weightedValue})</Text>
                     </View>
-                ))}
+                    );
+                })}
             </View>
         </ScrollView>
     );
