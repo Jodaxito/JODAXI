@@ -680,11 +680,11 @@ app.use('/api', (req, res) => {
 
 // Servir archivos estáticos al final, DESPUÉS de todas las rutas API
 const path = require('path');
-app.use(express.static(path.join(__dirname, '../mobile/dist')));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // SPA fallback - redirigir todo al index.html
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../mobile/dist/index.html'));
+  res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
