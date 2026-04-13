@@ -72,20 +72,27 @@ export const CreateProductScreen = ({ navigation, route }: Props) => {
             return;
         }
 
+        if (!user?.id) {
+            Alert.alert('Error', 'Debes iniciar sesión para publicar un producto');
+            return;
+        }
+
         setLoading(true);
         try {
             const productData = {
-                nombre: name,
-                descripcion: description,
+                nombre: name.trim(),
+                descripcion: description.trim(),
                 precio: selectedType === 'donacion' ? 0 : parseFloat(price) || 0,
                 estado: selectedCondition,
                 categoria: selectedCategory,
                 tipo_transaccion: selectedType,
-                imagen: image,
-                user_id: user?.id,
-                user_name: user?.name,
-                user_email: user?.email,
+                imagen: image || null,
+                user_id: user.id,
+                user_name: user.name || 'Usuario',
+                user_email: user.email || '',
             };
+
+            console.log('Enviando producto:', productData);
 
             if (isEditing) {
                 await productAPI.update(editingProduct.id, productData);
@@ -95,8 +102,9 @@ export const CreateProductScreen = ({ navigation, route }: Props) => {
                 Alert.alert('Éxito', 'Producto publicado correctamente');
             }
             navigation.goBack();
-        } catch (error) {
-            Alert.alert('Error', 'No se pudo publicar el producto');
+        } catch (error: any) {
+            console.error('Error publicando producto:', error);
+            Alert.alert('Error', error.message || 'No se pudo publicar el producto');
         } finally {
             setLoading(false);
         }

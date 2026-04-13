@@ -85,9 +85,15 @@ export const ChatDetailScreen = ({ route, navigation }: Props) => {
     const sendMessage = async () => {
         if (!inputText.trim()) return;
 
+        if (!user?.id) {
+            Alert.alert('Error', 'Debes iniciar sesión para enviar mensajes');
+            return;
+        }
+
         try {
+            console.log('Enviando mensaje:', { chatId, sender_id: user.id, text: inputText.trim() });
             await chatAPI.sendMessage(chatId, {
-                sender_id: user?.id,
+                sender_id: user.id,
                 text: inputText.trim()
             });
             
@@ -95,9 +101,9 @@ export const ChatDetailScreen = ({ route, navigation }: Props) => {
             await loadMessages();
             setInputText('');
             flatListRef.current?.scrollToEnd({ animated: true });
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error sending message:', error);
-            Alert.alert('Error', 'No se pudo enviar el mensaje');
+            Alert.alert('Error', error.message || 'No se pudo enviar el mensaje');
         }
     };
 

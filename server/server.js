@@ -422,8 +422,14 @@ app.get('/api/chats', async (req, res) => {
 
 // POST /api/chats - Crear chat
 app.post('/api/chats', async (req, res) => {
+  console.log('POST /api/chats - Crear chat:', req.body);
   try {
     const { product_id, product_name, participants } = req.body;
+    
+    if (!participants || participants.length < 2) {
+      console.log('Error: Se necesitan al menos 2 participantes');
+      return res.status(400).json({ error: 'Se necesitan al menos 2 participantes' });
+    }
     
     // Crear chat
     const chatResult = await pool.query(
@@ -431,6 +437,7 @@ app.post('/api/chats', async (req, res) => {
       [product_id, product_name]
     );
     const chat = chatResult.rows[0];
+    console.log('Chat creado:', chat.id);
     
     // Agregar participantes
     for (const participant of participants) {
@@ -439,11 +446,12 @@ app.post('/api/chats', async (req, res) => {
         [chat.id, participant.user_id, participant.user_name]
       );
     }
+    console.log('Participantes agregados:', participants.length);
     
     res.status(201).json({ data: chat });
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Error en el servidor' });
+    console.error('Error creando chat:', error);
+    res.status(500).json({ error: 'Error en el servidor: ' + error.message });
   }
 });
 
@@ -464,14 +472,21 @@ app.get('/api/chats/:chatId/messages', async (req, res) => {
 
 // POST /api/chats/:chatId/messages - Enviar mensaje
 app.post('/api/chats/:chatId/messages', async (req, res) => {
+  console.log('POST /api/chats/:chatId/messages - Chat:', req.params.chatId, 'Body:', req.body);
   try {
     const { sender_id, text } = req.body;
+    
+    if (!sender_id || !text) {
+      console.log('Error: Faltan campos requeridos');
+      return res.status(400).json({ error: 'Faltan campos requeridos: sender_id y text' });
+    }
     
     // Insertar mensaje
     const result = await pool.query(
       `INSERT INTO messages (chat_id, sender_id, text, timestamp) VALUES ($1, $2, $3, NOW()) RETURNING *`,
       [req.params.chatId, sender_id, text]
     );
+    console.log('Mensaje creado:', result.rows[0].id);
     
     // Actualizar último mensaje del chat
     await pool.query(
