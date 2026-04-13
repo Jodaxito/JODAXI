@@ -225,16 +225,15 @@ export const AdminDashboardScreen = ({ navigation }: Props) => {
             const apiProducts = productsRes.data || [];
             setProducts(apiProducts);
 
-            // Extraer usuarios únicos de los productos
-            const uniqueEmails = [...new Set(apiProducts.map((p: Producto) => p.user_email).filter(Boolean))];
-            const usersData: Usuario[] = uniqueEmails.map((email, index) => ({
-                id: index + 1,
-                name: apiProducts.find((p: Producto) => p.user_email === email)?.user_name || 'Usuario',
-                email: email as string,
-                productos: apiProducts.filter((p: Producto) => p.user_email === email).length,
-                created_at: new Date().toISOString()
+            // Cargar usuarios desde el backend
+            const usersRes = await adminAPI.getUsers();
+            const apiUsers = usersRes.data || [];
+            // Calcular productos por usuario
+            const usersWithProductCount = apiUsers.map((user: any) => ({
+                ...user,
+                productos: apiProducts.filter((p: Producto) => p.user_email === user.email).length
             }));
-            setUsers(usersData);
+            setUsers(usersWithProductCount);
 
             // Cargar estadísticas de actividad del backend
             const activityRes = await adminAPI.getActivity();

@@ -210,6 +210,9 @@ export const adminAPI = {
     getActivity: async () => {
         return fetchAPI('/api/admin/activity');
     },
+    getUsers: async () => {
+        return fetchAPI('/api/users');
+    },
 };
 
 // Category API
