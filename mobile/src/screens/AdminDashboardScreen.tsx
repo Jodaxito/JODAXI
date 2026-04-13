@@ -13,7 +13,7 @@ import {
     RefreshControl,
     Dimensions,
 } from 'react-native';
-import { LineChart } from 'react-native-chart-kit';
+import Svg, { Path, Circle, Line, Text as SvgText, Rect } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { StackScreenProps } from '@react-navigation/stack';
 import { ProfileStackParamList } from '../navigator/BottomTabNavigator';
@@ -409,40 +409,143 @@ export const AdminDashboardScreen = ({ navigation }: Props) => {
                     Evolución temporal de interacciones en la plataforma
                 </Text>
                 {stats?.daily && stats.daily.length > 0 && (
-                    <LineChart
-                        data={{
-                            labels: stats.daily.map((day: any) => {
-                                const dateObj = new Date(day.date);
-                                return `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
-                            }),
-                            datasets: [{
-                                data: stats.daily.map((day: any) => day.count)
-                            }]
-                        }}
-                        width={width - 60}
-                        height={220}
-                        chartConfig={{
-                            backgroundColor: '#ffffff',
-                            backgroundGradientFrom: '#ffffff',
-                            backgroundGradientTo: '#ffffff',
-                            decimalPlaces: 0,
-                            color: (opacity = 1) => `rgba(76, 175, 80, ${opacity})`,
-                            labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                            style: {
-                                borderRadius: 16
-                            },
-                            propsForDots: {
-                                r: '4',
-                                strokeWidth: '2',
-                                stroke: '#4CAF50'
-                            }
-                        }}
-                        bezier
-                        style={{
-                            marginVertical: 8,
-                            borderRadius: 16
-                        }}
-                    />
+                    <View style={styles.chartWrapper}>
+                        <Svg width={width - 80} height={240} viewBox={`0 0 ${width - 80} 240`}>
+                            {/* Fondo */}
+                            <Rect x="0" y="0" width={width - 80} height="240" fill="#ffffff" rx="8" />
+                            
+                            {/* Configuración */}
+                            {(() => {
+                                const chartWidth = width - 100;
+                                const chartHeight = 180;
+                                const paddingLeft = 40;
+                                const paddingTop = 20;
+                                const paddingBottom = 40;
+                                
+                                const data = stats.daily.map((d: any) => d.count);
+                                const maxVal = Math.max(...data, 1);
+                                const minVal = 0;
+                                const range = maxVal - minVal;
+                                
+                                const xScale = chartWidth / (data.length - 1 || 1);
+                                const yScale = chartHeight / range;
+                                
+                                // Líneas de cuadrícula horizontales
+                                const gridLines = [0, 0.25, 0.5, 0.75, 1].map((ratio, i) => {
+                                    const y = paddingTop + chartHeight * (1 - ratio);
+                                    const value = Math.round(minVal + range * ratio);
+                                    return (
+                                        <g key={`grid-${i}`}>
+                                            <Line
+                                                x1={paddingLeft}
+                                                y1={y}
+                                                x2={paddingLeft + chartWidth}
+                                                y2={y}
+                                                stroke="#e0e0e0"
+                                                strokeWidth="1"
+                                            />
+                                            <SvgText x={paddingLeft - 5} y={y + 4} fill="#666" fontSize="10" textAnchor="end">{value}</SvgText>
+                                        </g>
+                                    );
+                                });
+                                
+                                // Crear path de la línea (curva suave)
+                                let pathD = '';
+                                const points: {x: number, y: number}[] = [];
+                                
+                                data.forEach((count: number, index: number) => {
+                                    const x = paddingLeft + index * xScale;
+                                    const y = paddingTop + chartHeight - (count - minVal) * yScale;
+                                    points.push({x, y});
+                                    
+                                    if (index === 0) {
+                                        pathD += `M ${x} ${y}`;
+                                    } else {
+                                        // Curva bezier suave
+                                        const prev = points[index - 1];
+                                        const cpx1 = prev.x + (x - prev.x) / 2;
+                                        const cpy1 = prev.y;
+                                        const cpx2 = prev.x + (x - prev.x) / 2;
+                                        const cpy2 = y;
+                                        pathD += ` C ${cpx1} ${cpy1}, ${cpx2} ${cpy2}, ${x} ${y}`;
+                                    }
+                                });
+                                
+                                // Ejes
+                                const xAxis = (
+                                    <Line
+                                        x1={paddingLeft}
+                                        y1={paddingTop + chartHeight}
+                                        x2={paddingLeft + chartWidth}
+                                        y2={paddingTop + chartHeight}
+                                        stroke="#333"
+                                        strokeWidth="2"
+                                    />
+                                );
+                                
+                                const yAxis = (
+                                    <Line
+                                        x1={paddingLeft}
+                                        y1={paddingTop}
+                                        x2={paddingLeft}
+                                        y2={paddingTop + chartHeight}
+                                        stroke="#333"
+                                        strokeWidth="2"
+                                    />
+                                );
+                                
+                                // Puntos de datos
+                                const dataPoints = points.map((point, index) => (
+                                    <Circle
+                                        key={`point-${index}`}
+                                        cx={point.x}
+                                        cy={point.y}
+                                        r="5"
+                                        fill="#4CAF50"
+                                        stroke="#ffffff"
+                                        strokeWidth="2"
+                                    />
+                                ));
+                                
+                                // Etiquetas del eje X
+                                const xLabels = stats.daily.map((day: any, index: number) => {
+                                    const x = paddingLeft + index * xScale;
+                                    const dateObj = new Date(day.date);
+                                    const label = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
+                                    return (
+                                        <SvgText
+                                            key={`label-${index}`}
+                                            x={x}
+                                            y={paddingTop + chartHeight + 20}
+                                            fill="#666"
+                                            fontSize="10"
+                                            textAnchor="middle"
+                                        >
+                                            {label}
+                                        </SvgText>
+                                    );
+                                });
+                                
+                                return (
+                                    <g>
+                                        {gridLines}
+                                        {xAxis}
+                                        {yAxis}
+                                        <Path
+                                            d={pathD}
+                                            fill="none"
+                                            stroke="#4CAF50"
+                                            strokeWidth="3"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        />
+                                        {dataPoints}
+                                        {xLabels}
+                                    </g>
+                                );
+                            })()}
+                        </Svg>
+                    </View>
                 )}
             </View>
 
@@ -886,6 +989,13 @@ const styles = StyleSheet.create({
         fontSize: 10,
         color: colors.gray,
         textAlign: 'right',
+    },
+    chartWrapper: {
+        alignItems: 'center',
+        marginTop: 10,
+        backgroundColor: '#ffffff',
+        borderRadius: 8,
+        padding: 10,
     },
     chartContainer: {
         flexDirection: 'row',
