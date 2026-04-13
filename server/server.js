@@ -91,6 +91,14 @@ const initDB = async () => {
     } catch (e) {
       // Ignorar error si ya existe
     }
+    
+    // Asegurar que product_name existe
+    try {
+      await pool.query(`ALTER TABLE chats ADD COLUMN IF NOT EXISTS product_name VARCHAR(255)`);
+      console.log('Columna product_name verificada');
+    } catch (e) {
+      // Ignorar error si ya existe
+    }
 
     // Tabla de participantes de chats
     await pool.query(`
