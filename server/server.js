@@ -63,6 +63,14 @@ const initDB = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    
+    // Asegurar que imagen sea TEXT (no VARCHAR) para soportar base64
+    try {
+      await pool.query(`ALTER TABLE products ALTER COLUMN imagen TYPE TEXT`);
+      console.log('Columna imagen actualizada a TEXT');
+    } catch (e) {
+      // Ignorar error si ya es TEXT
+    }
 
     // Tabla de chats
     await pool.query(`
@@ -313,18 +321,27 @@ app.get('/api/products/:id', async (req, res) => {
 
 // POST /api/products - Crear producto
 app.post('/api/products', async (req, res) => {
+  console.log('POST /api/products - Crear producto:', req.body);
   try {
     const { nombre, descripcion, precio, estado, tipo_transaccion, imagen, categoria, user_id, user_name, user_email } = req.body;
+    
+    // Validar campos requeridos
+    if (!nombre || !user_id) {
+      console.log('Error: Faltan campos requeridos - nombre:', nombre, 'user_id:', user_id);
+      return res.status(400).json({ error: 'Faltan campos requeridos: nombre y user_id' });
+    }
+    
     const result = await pool.query(
       `INSERT INTO products (nombre, descripcion, precio, estado, tipo_transaccion, imagen, categoria, user_id, user_name, user_email) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
        RETURNING id, nombre, descripcion, precio, estado, tipo_transaccion, imagen, categoria, user_id, user_name, user_email, created_at`,
       [nombre, descripcion, precio, estado, tipo_transaccion, imagen, categoria, user_id, user_name, user_email]
     );
+    console.log('Producto creado exitosamente:', result.rows[0].id);
     res.status(201).json({ data: result.rows[0] });
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Error en el servidor' });
+    console.error('Error creando producto:', error);
+    res.status(500).json({ error: 'Error en el servidor: ' + error.message });
   }
 });
 
