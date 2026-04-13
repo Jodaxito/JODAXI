@@ -402,149 +402,59 @@ export const AdminDashboardScreen = ({ navigation }: Props) => {
                 </View>
             </View>
 
-            {/* Gráfico de actividad */}
+            {/* Gráfico de actividad - Barras */}
             <View style={styles.statsCard}>
                 <Text style={styles.statsTitle}>Gráfico de Actividad (Laplace)</Text>
                 <Text style={styles.statsSubtitle}>
                     Evolución temporal de interacciones en la plataforma
                 </Text>
                 {stats?.daily && stats.daily.length > 0 && (
-                    <View style={styles.chartWrapper}>
-                        <Svg width={width - 80} height={240} viewBox={`0 0 ${width - 80} 240`}>
-                            {/* Fondo */}
-                            <Rect x="0" y="0" width={width - 80} height="240" fill="#ffffff" rx="8" />
+                    <View style={styles.barChartContainer}>
+                        {/* Eje Y */}
+                        <View style={styles.yAxisLabels}>
+                            {[250, 200, 150, 100, 50, 0].map((val, i) => (
+                                <Text key={i} style={styles.yAxisLabel}>{val}</Text>
+                            ))}
+                        </View>
+                        
+                        {/* Área de barras */}
+                        <View style={styles.barsArea}>
+                            {/* Líneas de cuadrícula horizontales */}
+                            {[0, 50, 100, 150, 200, 250].map((val, i) => (
+                                <View 
+                                    key={i} 
+                                    style={[
+                                        styles.gridLine,
+                                        { bottom: (val / 250) * 200 }
+                                    ]} 
+                                />
+                            ))}
                             
-                            {/* Configuración */}
-                            {(() => {
-                                const chartWidth = width - 100;
-                                const chartHeight = 180;
-                                const paddingLeft = 40;
-                                const paddingTop = 20;
-                                const paddingBottom = 40;
-                                
-                                const data = stats.daily.map((d: any) => d.count);
-                                const maxVal = Math.max(...data, 1);
-                                const minVal = 0;
-                                const range = maxVal - minVal;
-                                
-                                const xScale = chartWidth / (data.length - 1 || 1);
-                                const yScale = chartHeight / range;
-                                
-                                // Líneas de cuadrícula horizontales
-                                const gridLines = [0, 0.25, 0.5, 0.75, 1].map((ratio, i) => {
-                                    const y = paddingTop + chartHeight * (1 - ratio);
-                                    const value = Math.round(minVal + range * ratio);
-                                    return (
-                                        <G key={`grid-${i}`}>
-                                            <Line
-                                                x1={paddingLeft}
-                                                y1={y}
-                                                x2={paddingLeft + chartWidth}
-                                                y2={y}
-                                                stroke="#e0e0e0"
-                                                strokeWidth="1"
-                                            />
-                                            <SvgText x={paddingLeft - 5} y={y + 4} fill="#666" fontSize="10" textAnchor="end">{value}</SvgText>
-                                        </G>
-                                    );
-                                });
-                                
-                                // Crear path de la línea (curva suave)
-                                let pathD = '';
-                                const points: {x: number, y: number}[] = [];
-                                
-                                data.forEach((count: number, index: number) => {
-                                    const x = paddingLeft + index * xScale;
-                                    const y = paddingTop + chartHeight - (count - minVal) * yScale;
-                                    points.push({x, y});
-                                    
-                                    if (index === 0) {
-                                        pathD += `M ${x} ${y}`;
-                                    } else {
-                                        // Curva bezier suave
-                                        const prev = points[index - 1];
-                                        const cpx1 = prev.x + (x - prev.x) / 2;
-                                        const cpy1 = prev.y;
-                                        const cpx2 = prev.x + (x - prev.x) / 2;
-                                        const cpy2 = y;
-                                        pathD += ` C ${cpx1} ${cpy1}, ${cpx2} ${cpy2}, ${x} ${y}`;
-                                    }
-                                });
-                                
-                                // Ejes
-                                const xAxis = (
-                                    <Line
-                                        x1={paddingLeft}
-                                        y1={paddingTop + chartHeight}
-                                        x2={paddingLeft + chartWidth}
-                                        y2={paddingTop + chartHeight}
-                                        stroke="#333"
-                                        strokeWidth="2"
-                                    />
-                                );
-                                
-                                const yAxis = (
-                                    <Line
-                                        x1={paddingLeft}
-                                        y1={paddingTop}
-                                        x2={paddingLeft}
-                                        y2={paddingTop + chartHeight}
-                                        stroke="#333"
-                                        strokeWidth="2"
-                                    />
-                                );
-                                
-                                // Puntos de datos
-                                const dataPoints = points.map((point, index) => (
-                                    <Circle
-                                        key={`point-${index}`}
-                                        cx={point.x}
-                                        cy={point.y}
-                                        r="5"
-                                        fill="#4CAF50"
-                                        stroke="#ffffff"
-                                        strokeWidth="2"
-                                    />
-                                ));
-                                
-                                // Etiquetas del eje X
-                                const xLabels = stats.daily.map((day: any, index: number) => {
-                                    const x = paddingLeft + index * xScale;
+                            {/* Barras */}
+                            <View style={styles.barsWrapper}>
+                                {stats.daily.map((day: any, index: number) => {
+                                    const maxVal = 250;
+                                    const barHeight = (day.count / maxVal) * 200;
                                     const dateObj = new Date(day.date);
                                     const label = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
+                                    
                                     return (
-                                        <SvgText
-                                            key={`label-${index}`}
-                                            x={x}
-                                            y={paddingTop + chartHeight + 20}
-                                            fill="#666"
-                                            fontSize="10"
-                                            textAnchor="middle"
-                                        >
-                                            {label}
-                                        </SvgText>
+                                        <View key={index} style={styles.barColumn}>
+                                            <View style={styles.barContainer}>
+                                                <View 
+                                                    style={[
+                                                        styles.bar,
+                                                        { height: barHeight }
+                                                    ]} 
+                                                />
+                                            </View>
+                                            <Text style={styles.barLabel}>{label}</Text>
+                                            <Text style={styles.barValue}>{day.count}</Text>
+                                        </View>
                                     );
-                                });
-                                
-                                return (
-                                    <G>
-                                        {gridLines}
-                                        {xAxis}
-                                        {yAxis}
-                                        <Path
-                                            d={pathD}
-                                            fill="none"
-                                            stroke="#4CAF50"
-                                            strokeWidth="3"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                        />
-                                        {dataPoints}
-                                        {xLabels}
-                                    </G>
-                                );
-                            })()}
-                        </Svg>
+                                })}
+                            </View>
+                        </View>
                     </View>
                 )}
             </View>
@@ -990,21 +900,17 @@ const styles = StyleSheet.create({
         color: colors.gray,
         textAlign: 'right',
     },
-    chartWrapper: {
-        alignItems: 'center',
+    barChartContainer: {
+        flexDirection: 'row',
+        height: 250,
         marginTop: 10,
         backgroundColor: '#ffffff',
         borderRadius: 8,
         padding: 10,
     },
-    chartContainer: {
-        flexDirection: 'row',
-        height: 280,
-        marginTop: 10,
-    },
-    yAxis: {
-        width: 40,
-        height: 250,
+    yAxisLabels: {
+        width: 35,
+        height: 200,
         justifyContent: 'space-between',
         alignItems: 'flex-end',
         paddingRight: 5,
@@ -1013,9 +919,9 @@ const styles = StyleSheet.create({
         fontSize: 10,
         color: colors.gray,
     },
-    chartArea: {
+    barsArea: {
         flex: 1,
-        height: 250,
+        height: 200,
         position: 'relative',
     },
     gridLine: {
@@ -1025,41 +931,39 @@ const styles = StyleSheet.create({
         height: 1,
         backgroundColor: '#e5e7eb',
     },
-    lineChart: {
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        top: 0,
-        bottom: 30,
-    },
-    lineSegment: {
-        position: 'absolute',
-        height: 2,
-        backgroundColor: colors.primary,
-        transformOrigin: 'left',
-    },
-    dataPoint: {
-        position: 'absolute',
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: colors.primary,
-        borderWidth: 2,
-        borderColor: colors.white,
-    },
-    xAxis: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: 30,
+    barsWrapper: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        justifyContent: 'space-around',
         alignItems: 'flex-end',
+        height: 200,
+        paddingHorizontal: 5,
     },
-    xAxisLabel: {
-        fontSize: 10,
+    barColumn: {
+        alignItems: 'center',
+        flex: 1,
+    },
+    barContainer: {
+        width: 20,
+        height: 200,
+        justifyContent: 'flex-end',
+        backgroundColor: 'transparent',
+    },
+    bar: {
+        width: '100%',
+        backgroundColor: '#4CAF50',
+        borderTopLeftRadius: 4,
+        borderTopRightRadius: 4,
+    },
+    barLabel: {
+        fontSize: 9,
         color: colors.gray,
+        marginTop: 5,
+    },
+    barValue: {
+        fontSize: 10,
+        color: colors.primary,
+        fontWeight: 'bold',
+        marginTop: 2,
     },
     modalOverlay: {
         flex: 1,
