@@ -162,6 +162,7 @@ app.get('/api/health', (req, res) => {
 
 // GET /api/users - Obtener todos los usuarios (para admin)
 app.get('/api/users', async (req, res) => {
+  console.log('GET /api/users - Solicitando todos los usuarios');
   try {
     const result = await pool.query(`
       SELECT id, name, email, created_at
@@ -275,6 +276,7 @@ app.get('/api/auth/me', async (req, res) => {
 
 // GET /api/products - Obtener todos los productos
 app.get('/api/products', async (req, res) => {
+  console.log('GET /api/products - Solicitando todos los productos');
   try {
     const result = await pool.query(`
       SELECT id, nombre, descripcion, precio, estado, tipo_transaccion, 
