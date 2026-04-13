@@ -13,6 +13,7 @@ import {
     RefreshControl,
     Dimensions,
 } from 'react-native';
+import { LineChart } from 'react-native-chart-kit';
 import { Ionicons } from '@expo/vector-icons';
 import { StackScreenProps } from '@react-navigation/stack';
 import { ProfileStackParamList } from '../navigator/BottomTabNavigator';
@@ -407,88 +408,42 @@ export const AdminDashboardScreen = ({ navigation }: Props) => {
                 <Text style={styles.statsSubtitle}>
                     Evolución temporal de interacciones en la plataforma
                 </Text>
-                <View style={styles.chartContainer}>
-                    {/* Eje Y */}
-                    <View style={styles.yAxis}>
-                        {[250, 200, 150, 100, 50, 0].map((val, i) => (
-                            <Text key={i} style={styles.yAxisLabel}>{val}</Text>
-                        ))}
-                    </View>
-                    
-                    {/* Área del gráfico */}
-                    <View style={styles.chartArea}>
-                        {/* Líneas horizontales de referencia */}
-                        {[0, 1, 2, 3, 4, 5].map(i => (
-                            <View key={i} style={[styles.gridLine, { bottom: i * 50 }]} />
-                        ))}
-                        
-                        {/* Línea de datos */}
-                        <View style={styles.lineChart}>
-                            {stats?.daily?.map((day: any, index: number, arr: any[]) => {
-                                if (index === 0) return null;
-                                const prevDay = arr[index - 1];
-                                const maxVal = 250;
-                                const y1 = (prevDay.count / maxVal) * 250;
-                                const y2 = (day.count / maxVal) * 250;
-                                const x1 = ((index - 1) / (arr.length - 1)) * 100;
-                                const x2 = (index / (arr.length - 1)) * 100;
-                                
-                                const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-                                const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
-                                
-                                return (
-                                    <View
-                                        key={index}
-                                        style={[
-                                            styles.lineSegment,
-                                            {
-                                                left: `${x1}%`,
-                                                bottom: y1,
-                                                width: length,
-                                                transform: [{ rotate: `${-angle}deg` }],
-                                            }
-                                        ]}
-                                    />
-                                );
-                            })}
-                            
-                            {/* Puntos de datos */}
-                            {stats?.daily?.map((day: any, index: number, arr: any[]) => {
-                                const maxVal = 250;
-                                const y = (day.count / maxVal) * 250;
-                                const x = (index / (arr.length - 1 || 1)) * 100;
-                                
-                                return (
-                                    <View
-                                        key={`point-${index}`}
-                                        style={[
-                                            styles.dataPoint,
-                                            {
-                                                left: `${x}%`,
-                                                bottom: y - 4,
-                                            }
-                                        ]}
-                                    />
-                                );
-                            })}
-                        </View>
-                        
-                        {/* Eje X - fechas */}
-                        <View style={styles.xAxis}>
-                            {stats?.daily?.slice(0, 7).map((day: any, index: number) => {
-                                // Formatear fecha ISO a MM-DD
+                {stats?.daily && stats.daily.length > 0 && (
+                    <LineChart
+                        data={{
+                            labels: stats.daily.map((day: any) => {
                                 const dateObj = new Date(day.date);
-                                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-                                const dayNum = String(dateObj.getDate()).padStart(2, '0');
-                                return (
-                                    <Text key={index} style={styles.xAxisLabel}>
-                                        {month}-{dayNum}
-                                    </Text>
-                                );
-                            })}
-                        </View>
-                    </View>
-                </View>
+                                return `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
+                            }),
+                            datasets: [{
+                                data: stats.daily.map((day: any) => day.count)
+                            }]
+                        }}
+                        width={width - 60}
+                        height={220}
+                        chartConfig={{
+                            backgroundColor: '#ffffff',
+                            backgroundGradientFrom: '#ffffff',
+                            backgroundGradientTo: '#ffffff',
+                            decimalPlaces: 0,
+                            color: (opacity = 1) => `rgba(76, 175, 80, ${opacity})`,
+                            labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                            style: {
+                                borderRadius: 16
+                            },
+                            propsForDots: {
+                                r: '4',
+                                strokeWidth: '2',
+                                stroke: '#4CAF50'
+                            }
+                        }}
+                        bezier
+                        style={{
+                            marginVertical: 8,
+                            borderRadius: 16
+                        }}
+                    />
+                )}
             </View>
 
             <View style={styles.statsCard}>
