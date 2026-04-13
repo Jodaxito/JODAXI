@@ -589,11 +589,75 @@ app.post('/api/seed', async (req, res) => {
     `;
     
     await req.db.query(seedSQL);
+    console.log('15 productos insertados');
+    
+    // Crear tabla chats si no existe
+    await req.db.query(`
+      CREATE TABLE IF NOT EXISTS chats (
+        id SERIAL PRIMARY KEY,
+        product_id INTEGER,
+        seller_id INTEGER,
+        buyer_id INTEGER,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    // Crear tabla messages si no existe
+    await req.db.query(`
+      CREATE TABLE IF NOT EXISTS messages (
+        id SERIAL PRIMARY KEY,
+        chat_id INTEGER,
+        sender_id INTEGER,
+        content TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    // Insertar chats (simulando actividad)
+    const chatsSQL = `
+      INSERT INTO chats (product_id, seller_id, buyer_id, created_at, updated_at) VALUES
+      (1, 1, 2, NOW() - INTERVAL '0 days', NOW()),
+      (2, 1, 3, NOW() - INTERVAL '1 day', NOW()),
+      (3, 2, 1, NOW() - INTERVAL '1 day', NOW()),
+      (4, 2, 3, NOW() - INTERVAL '2 days', NOW()),
+      (5, 1, 2, NOW() - INTERVAL '2 days', NOW()),
+      (6, 3, 1, NOW() - INTERVAL '3 days', NOW()),
+      (7, 3, 2, NOW() - INTERVAL '3 days', NOW()),
+      (8, 2, 1, NOW() - INTERVAL '4 days', NOW()),
+      (9, 1, 3, NOW() - INTERVAL '4 days', NOW()),
+      (10, 3, 1, NOW() - INTERVAL '5 days', NOW())
+    `;
+    await req.db.query(chatsSQL);
+    console.log('10 chats insertados');
+    
+    // Insertar mensajes en los chats
+    const messagesSQL = `
+      INSERT INTO messages (chat_id, sender_id, content, created_at) VALUES
+      (1, 1, 'Hola, ¿está disponible?', NOW() - INTERVAL '0 days'),
+      (1, 2, 'Sí, aún está disponible', NOW() - INTERVAL '0 days' + INTERVAL '5 minutes'),
+      (1, 1, '¿Me lo puedes dejar en $8000?', NOW() - INTERVAL '0 days' + INTERVAL '10 minutes'),
+      (2, 3, 'Me interesa el iPhone', NOW() - INTERVAL '1 day'),
+      (2, 1, 'Perfecto, ¿cuándo lo recoges?', NOW() - INTERVAL '1 day' + INTERVAL '15 minutes'),
+      (3, 1, '¿Tienes factura de los audífonos?', NOW() - INTERVAL '1 day'),
+      (3, 2, 'Sí, tengo factura', NOW() - INTERVAL '1 day' + INTERVAL '20 minutes'),
+      (4, 3, '¿El mouse tiene garantía?', NOW() - INTERVAL '2 days'),
+      (5, 2, 'Me gusta el teclado', NOW() - INTERVAL '2 days'),
+      (6, 1, '¿El monitor tiene HDMI?', NOW() - INTERVAL '3 days'),
+      (7, 2, '¿Aceptas cambios por la cámara?', NOW() - INTERVAL '3 days'),
+      (8, 1, 'La tablet tiene pencil?', NOW() - INTERVAL '4 days'),
+      (9, 3, '¿El smartwatch es resistente al agua?', NOW() - INTERVAL '4 days'),
+      (10, 1, '¿El router es dual band?', NOW() - INTERVAL '5 days')
+    `;
+    await req.db.query(messagesSQL);
+    console.log('14 mensajes insertados');
     
     res.json({ 
       success: true, 
-      message: 'Tabla recreada y datos insertados correctamente',
-      inserted: 15
+      message: 'Datos de prueba insertados correctamente',
+      products: 15,
+      chats: 10,
+      messages: 14
     });
   } catch (error) {
     console.error('Error seeding data:', error);
